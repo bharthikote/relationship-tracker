@@ -575,15 +575,73 @@ select {
   overflow: hidden;
 }
 .mode-toggle button {
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
   border: none;
   background: var(--panel-bg);
   color: var(--text-muted);
-  font-size: 13px;
 }
 .mode-toggle button.active {
   background: var(--accent);
   color: white;
+}
+
+/* ---- User menu ---- */
+.user-menu {
+  position: relative;
+}
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  color: var(--text);
+}
+.user-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+.user-menu-dropdown {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 31;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  min-width: 160px;
+}
+.user-menu-name {
+  padding: 8px 10px 4px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.user-menu-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.user-menu-dropdown button:hover {
+  background: rgba(47, 129, 247, 0.12);
 }
 
 /* ---- Person quick-action menu ---- */

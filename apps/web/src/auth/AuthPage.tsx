@@ -30,7 +30,7 @@ export function AuthPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Village Family Tree</h1>
+        <h1>Family Tree</h1>
         <p className="auth-sub">
           {mode === "signin" ? "Sign in to your tree." : "Create an account to start your tree."}
         </p>

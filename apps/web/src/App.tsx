@@ -8,9 +8,11 @@ import { PersonDetailPanel } from "./components/PersonDetailPanel";
 import { AddRelativeFlow } from "./components/AddRelativeFlow";
 import { AccountPanel } from "./components/AccountPanel";
 import { RenameModal } from "./components/RenameModal";
+import { UserMenu } from "./components/UserMenu";
 import { useAuth } from "./auth/AuthContext";
 import { AuthPage } from "./auth/AuthPage";
 import { quickRelationToPreset, type QuickRelation } from "./quickRelations";
+import { EyeIcon, PencilIcon } from "./icons";
 
 function App() {
   const { session, loading: authLoading, signOut } = useAuth();
@@ -45,6 +47,7 @@ function TreeApp({
   profile: Profile;
   onProfileUpdated: (p: Profile) => void;
 }) {
+  const { signOut } = useAuth();
   const [people, setPeople] = useState<Person[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [villages, setVillages] = useState<Village[]>([]);
@@ -143,22 +146,34 @@ function TreeApp({
   return (
     <div className="app-shell">
       <header className="top-bar">
-        <h1 className="app-title">Village Family Tree</h1>
+        <h1 className="app-title">Family Tree</h1>
         <SearchBar people={people} onSelect={setSelectedPersonId} />
         <div className="mode-toggle">
-          <button className={mode === "view" ? "active" : ""} onClick={() => setMode("view")}>
-            View
+          <button
+            className={mode === "view" ? "active" : ""}
+            onClick={() => setMode("view")}
+            aria-label="View mode"
+            title="View"
+          >
+            <EyeIcon />
           </button>
-          <button className={mode === "edit" ? "active" : ""} onClick={() => setMode("edit")}>
-            Edit
+          <button
+            className={mode === "edit" ? "active" : ""}
+            onClick={() => setMode("edit")}
+            aria-label="Edit mode"
+            title="Edit"
+          >
+            <PencilIcon />
           </button>
         </div>
         <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
           Villages
         </button>
-        <button className="legend-toggle" onClick={() => setAccountOpen(true)}>
-          {profile.displayName || profile.email.split("@")[0]}
-        </button>
+        <UserMenu
+          displayName={profile.displayName || profile.email.split("@")[0]}
+          onOpenProfile={() => setAccountOpen(true)}
+          onSignOut={signOut}
+        />
       </header>
 
       {legendOpen && (

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { useAuth } from "../auth/AuthContext";
 import type {
   AdminProfile,
   ConnectionRequestSummary,
@@ -18,7 +17,6 @@ interface Props {
 }
 
 export function AccountPanel({ profile, onProfileUpdated, onClose }: Props) {
-  const { signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("profile");
 
   return (
@@ -41,9 +39,7 @@ export function AccountPanel({ profile, onProfileUpdated, onClose }: Props) {
           )}
         </div>
 
-        {tab === "profile" && (
-          <ProfileTab profile={profile} onProfileUpdated={onProfileUpdated} onSignOut={signOut} />
-        )}
+        {tab === "profile" && <ProfileTab profile={profile} onProfileUpdated={onProfileUpdated} />}
         {tab === "connections" && <ConnectionsTab />}
         {tab === "admin" && profile.role === "super_admin" && <AdminTab />}
       </div>
@@ -54,11 +50,9 @@ export function AccountPanel({ profile, onProfileUpdated, onClose }: Props) {
 function ProfileTab({
   profile,
   onProfileUpdated,
-  onSignOut,
 }: {
   profile: Profile;
   onProfileUpdated: (p: Profile) => void;
-  onSignOut: () => Promise<void>;
 }) {
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
   const [visibility, setVisibility] = useState<TreeVisibility>(profile.treeVisibility);
@@ -98,9 +92,6 @@ function ProfileTab({
           {saving ? "Saving..." : "Save"}
         </button>
       </div>
-      <button className="auth-switch" onClick={onSignOut}>
-        Sign out
-      </button>
     </div>
   );
 }
