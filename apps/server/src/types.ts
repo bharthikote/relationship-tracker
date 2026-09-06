@@ -8,6 +8,7 @@ export interface LocationEvent {
 
 export interface Person {
   id: string;
+  ownerId: string;
   name: string;
   nameLocal?: string;
   gender: Gender;
@@ -44,10 +45,4 @@ export interface Village {
   type: VillageType;
   color: string;
   region?: string;
-}
-
-export interface DbSchema {
-  people: Person[];
-  relationships: Relationship[];
-  villages: Village[];
 }

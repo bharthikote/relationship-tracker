@@ -1,0 +1,278 @@
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import { useAuth } from "../auth/AuthContext";
+import type {
+  AdminProfile,
+  ConnectionRequestSummary,
+  DiscoverProfile,
+  Profile,
+  TreeVisibility,
+} from "../types";
+
+type Tab = "profile" | "connections" | "admin";
+
+interface Props {
+  profile: Profile;
+  onProfileUpdated: (p: Profile) => void;
+  onClose: () => void;
+}
+
+export function AccountPanel({ profile, onProfileUpdated, onClose }: Props) {
+  const { signOut } = useAuth();
+  const [tab, setTab] = useState<Tab>("profile");
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal account-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose}>
+          close
+        </button>
+        <div className="tab-row">
+          <button className={tab === "profile" ? "active" : ""} onClick={() => setTab("profile")}>
+            Profile
+          </button>
+          <button className={tab === "connections" ? "active" : ""} onClick={() => setTab("connections")}>
+            Connections
+          </button>
+          {profile.role === "super_admin" && (
+            <button className={tab === "admin" ? "active" : ""} onClick={() => setTab("admin")}>
+              Admin
+            </button>
+          )}
+        </div>
+
+        {tab === "profile" && (
+          <ProfileTab profile={profile} onProfileUpdated={onProfileUpdated} onSignOut={signOut} />
+        )}
+        {tab === "connections" && <ConnectionsTab />}
+        {tab === "admin" && profile.role === "super_admin" && <AdminTab />}
+      </div>
+    </div>
+  );
+}
+
+function ProfileTab({
+  profile,
+  onProfileUpdated,
+  onSignOut,
+}: {
+  profile: Profile;
+  onProfileUpdated: (p: Profile) => void;
+  onSignOut: () => Promise<void>;
+}) {
+  const [displayName, setDisplayName] = useState(profile.displayName ?? "");
+  const [visibility, setVisibility] = useState<TreeVisibility>(profile.treeVisibility);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const updated = await api.profile.update({ displayName, treeVisibility: visibility });
+      onProfileUpdated(updated);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="muted-text">{profile.email}</p>
+      <label>
+        Display name
+        <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={profile.email} />
+      </label>
+      <label>Tree visibility</label>
+      <div className="visibility-choice">
+        <button
+          className={visibility === "private" ? "active" : ""}
+          onClick={() => setVisibility("private")}
+        >
+          Private — only me
+        </button>
+        <button className={visibility === "open" ? "active" : ""} onClick={() => setVisibility("open")}>
+          Open — visible to others
+        </button>
+      </div>
+      <div className="step-actions">
+        <button onClick={save} disabled={saving}>
+          {saving ? "Saving..." : "Save"}
+        </button>
+      </div>
+      <button className="auth-switch" onClick={onSignOut}>
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+function ConnectionsTab() {
+  const [discoverList, setDiscoverList] = useState<DiscoverProfile[]>([]);
+  const [requests, setRequests] = useState<ConnectionRequestSummary[]>([]);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function refresh() {
+    const [d, r] = await Promise.all([api.discover(), api.connections.list()]);
+    setDiscoverList(d);
+    setRequests(r);
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function requestByEmail() {
+    setMessage(null);
+    const matches = await api.users.searchByEmail(email);
+    if (matches.length === 0) return setMessage("No user found with that email.");
+    await sendRequest(matches[0].id);
+  }
+
+  async function sendRequest(toUserId: string) {
+    try {
+      await api.connections.create(toUserId);
+      setEmail("");
+      await refresh();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Could not send request");
+    }
+  }
+
+  const incoming = requests.filter((r) => r.direction === "incoming" && r.status === "pending");
+  const outgoing = requests.filter((r) => r.direction === "outgoing" && r.status === "pending");
+  const accepted = requests.filter((r) => r.status === "accepted");
+
+  return (
+    <div>
+      <div className="connections-section">
+        <div className="relation-list-title">Connect by email</div>
+        <div className="inline-form">
+          <input placeholder="someone@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <button onClick={requestByEmail} disabled={!email.trim()}>
+            Send request
+          </button>
+        </div>
+        {message && <div className="error-text">{message}</div>}
+      </div>
+
+      {discoverList.length > 0 && (
+        <div className="connections-section">
+          <div className="relation-list-title">Open trees you can browse</div>
+          {discoverList.map((d) => (
+            <div key={d.id} className="connection-row">
+              <span>
+                {d.displayName} ({d.personCount} people)
+              </span>
+              <button onClick={() => sendRequest(d.id)}>Connect</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {incoming.length > 0 && (
+        <div className="connections-section">
+          <div className="relation-list-title">Incoming requests</div>
+          {incoming.map((r) => (
+            <div key={r.id} className="connection-row">
+              <span>{r.fromUser.displayName}</span>
+              <div className="connection-row-actions">
+                <button
+                  onClick={async () => {
+                    await api.connections.accept(r.id);
+                    refresh();
+                  }}
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={async () => {
+                    await api.connections.decline(r.id);
+                    refresh();
+                  }}
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {outgoing.length > 0 && (
+        <div className="connections-section">
+          <div className="relation-list-title">Pending requests you sent</div>
+          {outgoing.map((r) => (
+            <div key={r.id} className="connection-row">
+              <span>{r.toUser.displayName}</span>
+              <button
+                onClick={async () => {
+                  await api.connections.remove(r.id);
+                  refresh();
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {accepted.length > 0 && (
+        <div className="connections-section">
+          <div className="relation-list-title">Connected</div>
+          {accepted.map((r) => {
+            const other = r.direction === "outgoing" ? r.toUser : r.fromUser;
+            return (
+              <div key={r.id} className="connection-row">
+                <span>{other.displayName}</span>
+                <button
+                  onClick={async () => {
+                    await api.connections.remove(r.id);
+                    refresh();
+                  }}
+                >
+                  Disconnect
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminTab() {
+  const [users, setUsers] = useState<AdminProfile[]>([]);
+
+  useEffect(() => {
+    api.admin.users().then(setUsers);
+  }, []);
+
+  return (
+    <div className="admin-table-wrap">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Visibility</th>
+            <th>People</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u) => (
+            <tr key={u.id}>
+              <td>{u.email}</td>
+              <td>{u.displayName ?? "—"}</td>
+              <td>{u.role}</td>
+              <td>{u.treeVisibility}</td>
+              <td>{u.personCount}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

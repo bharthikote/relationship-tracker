@@ -24,6 +24,56 @@ enum RelationshipType {
   sibling
 }
 
+enum UserRole {
+  user
+  super_admin
+}
+
+enum TreeVisibility {
+  open
+  private
+}
+
+enum ConnectionStatus {
+  pending
+  accepted
+  declined
+}
+
+// Mirrors a Supabase Auth user (id matches auth.users.id). Created on first login.
+model Profile {
+  id             String         @id
+  email          String         @unique
+  displayName    String?
+  role           UserRole       @default(user)
+  treeVisibility TreeVisibility @default(private)
+  createdAt      DateTime       @default(now())
+
+  people Person[]
+
+  sentRequests     ConnectionRequest[] @relation("RequestFrom")
+  receivedRequests ConnectionRequest[] @relation("RequestTo")
+
+  @@index([email])
+}
+
+model ConnectionRequest {
+  id     String            @id @default(uuid())
+  status ConnectionStatus  @default(pending)
+
+  fromUserId String
+  fromUser   Profile @relation("RequestFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  toUser     Profile @relation("RequestTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  message     String?
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId])
+}
+
 model Village {
   id     String      @id @default(uuid())
   name   String
@@ -46,6 +96,9 @@ model Person {
   isDeceased Boolean @default(false)
   photoUrl String?
 
+  ownerId String
+  owner   Profile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
   nativeVillageId  String?
   nativeVillage    Village? @relation("NativeVillage", fields: [nativeVillageId], references: [id])
   currentVillageId String?
@@ -66,6 +119,7 @@ model Person {
 
   @@index([name])
   @@index([currentVillageId])
+  @@index([ownerId])
 }
 
 model Relationship {

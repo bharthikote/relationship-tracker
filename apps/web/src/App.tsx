@@ -1,22 +1,51 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import type { PathResult, Person, Relationship, Village } from "./types";
+import type { PathResult, Person, Profile, Relationship, Village } from "./types";
 import { TreeCanvas } from "./components/TreeCanvas";
 import { SearchBar } from "./components/SearchBar";
 import { VillageLegend } from "./components/VillageLegend";
 import { PersonDetailPanel } from "./components/PersonDetailPanel";
 import { AddRelativeFlow } from "./components/AddRelativeFlow";
+import { AccountPanel } from "./components/AccountPanel";
+import { useAuth } from "./auth/AuthContext";
+import { AuthPage } from "./auth/AuthPage";
 
 function App() {
+  const { session, loading: authLoading } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (!session) {
+      setProfile(null);
+      return;
+    }
+    api.profile.me().then(setProfile);
+  }, [session]);
+
+  if (authLoading) return null;
+  if (!session) return <AuthPage />;
+  if (!profile) return null;
+
+  return <TreeApp profile={profile} onProfileUpdated={setProfile} />;
+}
+
+function TreeApp({
+  profile,
+  onProfileUpdated,
+}: {
+  profile: Profile;
+  onProfileUpdated: (p: Profile) => void;
+}) {
   const [people, setPeople] = useState<Person[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [villages, setVillages] = useState<Village[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [addFlowAnchorId, setAddFlowAnchorId] = useState<string | null>(null);
   const [activeVillageId, setActiveVillageId] = useState<string | null>(null);
-  const [selfId, setSelfId] = useState<string | null>(() => localStorage.getItem("selfId"));
+  const [selfId, setSelfId] = useState<string | null>(() => localStorage.getItem(`selfId:${profile.id}`));
   const [pathResult, setPathResult] = useState<PathResult | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     const [p, r, v] = await Promise.all([
@@ -35,9 +64,20 @@ function App() {
 
   function setSelf(id: string) {
     setSelfId(id);
-    localStorage.setItem("selfId", id);
+    localStorage.setItem(`selfId:${profile.id}`, id);
   }
 
+  async function addSelf() {
+    const { person } = await api.people.create({
+      name: profile.displayName || profile.email.split("@")[0],
+      gender: "other",
+    });
+    await refresh();
+    setSelectedPersonId(person.id);
+    setSelf(person.id);
+  }
+
+  const myPeople = people.filter((p) => p.ownerId === profile.id);
   const visiblePeople = activeVillageId
     ? people.filter((p) => p.currentVillageId === activeVillageId)
     : people;
@@ -68,6 +108,9 @@ function App() {
         <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
           Villages
         </button>
+        <button className="legend-toggle" onClick={() => setAccountOpen(true)}>
+          {profile.displayName || profile.email.split("@")[0]}
+        </button>
       </header>
 
       {legendOpen && (
@@ -84,16 +127,8 @@ function App() {
       <main className="canvas-area">
         {people.length === 0 ? (
           <div className="empty-state">
-            <p>No one in the tree yet.</p>
-            <button
-              onClick={async () => {
-                const { person } = await api.people.create({ name: "Me", gender: "other" });
-                await refresh();
-                setSelectedPersonId(person.id);
-              }}
-            >
-              Add the first person
-            </button>
+            <p>No one visible yet.</p>
+            <button onClick={addSelf}>Add yourself to start your tree</button>
           </div>
         ) : (
           <TreeCanvas
@@ -109,8 +144,12 @@ function App() {
         {people.length > 0 && (
           <button
             className="fab-add"
-            onClick={() => setAddFlowAnchorId(selectedPersonId ?? people[0].id)}
-            aria-label="Add relative"
+            onClick={() =>
+              myPeople.length === 0
+                ? addSelf()
+                : setAddFlowAnchorId(selectedPersonId ?? myPeople[0].id)
+            }
+            aria-label={myPeople.length === 0 ? "Add yourself" : "Add relative"}
           >
             +
           </button>
@@ -145,6 +184,14 @@ function App() {
             setAddFlowAnchorId(null);
             await refresh();
           }}
+        />
+      )}
+
+      {accountOpen && (
+        <AccountPanel
+          profile={profile}
+          onProfileUpdated={onProfileUpdated}
+          onClose={() => setAccountOpen(false)}
         />
       )}
     </div>

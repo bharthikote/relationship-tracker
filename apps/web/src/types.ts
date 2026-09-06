@@ -8,6 +8,7 @@ export interface LocationEvent {
 
 export interface Person {
   id: string;
+  ownerId: string;
   name: string;
   nameLocal?: string;
   gender: Gender;
@@ -25,6 +26,7 @@ export interface PersonSummary {
   name: string;
   gender: Gender;
   isDeceased: boolean;
+  ownerId: string;
 }
 
 export interface PersonDetail extends Person {
@@ -63,4 +65,38 @@ export interface PathResult {
   connected: boolean;
   steps: { personId: string; relationLabel: string }[];
   caption: string;
+}
+
+export type UserRole = "user" | "super_admin";
+export type TreeVisibility = "open" | "private";
+
+export interface Profile {
+  id: string;
+  email: string;
+  displayName?: string;
+  role: UserRole;
+  treeVisibility: TreeVisibility;
+  createdAt: string;
+}
+
+export interface AdminProfile extends Profile {
+  personCount: number;
+}
+
+export interface DiscoverProfile {
+  id: string;
+  displayName: string;
+  personCount: number;
+}
+
+export type ConnectionStatus = "pending" | "accepted" | "declined";
+
+export interface ConnectionRequestSummary {
+  id: string;
+  status: ConnectionStatus;
+  message?: string;
+  direction: "incoming" | "outgoing";
+  fromUser: { id: string; displayName: string };
+  toUser: { id: string; displayName: string };
+  createdAt: string;
 }

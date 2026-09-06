@@ -408,3 +408,161 @@ select {
     display: none;
   }
 }
+
+/* ---- Auth ---- */
+.auth-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+.auth-card h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+.auth-sub {
+  color: var(--text-muted);
+  margin: 0 0 20px;
+  font-size: 14px;
+}
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.auth-card button[type="submit"] {
+  margin-top: 4px;
+  padding: 12px;
+  min-height: 44px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+.auth-switch {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 16px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+}
+.info-text {
+  color: #2a8f4e;
+  font-size: 13px;
+}
+
+/* ---- Account panel ---- */
+.account-modal {
+  max-width: 460px;
+  width: 100%;
+}
+.tab-row {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.tab-row button {
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  font-weight: 600;
+}
+.tab-row button.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.muted-text {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.visibility-choice {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.visibility-choice button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.visibility-choice button.active {
+  border-color: var(--accent);
+  background: rgba(47, 129, 247, 0.12);
+  color: var(--accent);
+}
+.connections-section {
+  margin-bottom: 18px;
+}
+.inline-form {
+  display: flex;
+  gap: 8px;
+}
+.inline-form input {
+  flex: 1;
+}
+.connection-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  gap: 10px;
+}
+.connection-row-actions {
+  display: flex;
+  gap: 6px;
+}
+.connection-row button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.admin-table-wrap {
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
