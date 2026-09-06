@@ -10,7 +10,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { Person, Relationship, Village } from "../types";
-import { computeLayout } from "../layout";
+import { computeLayout, birthYear } from "../layout";
 import { PersonNode, type PersonNodeData } from "./PersonNode";
 import { SpouseEdge, type SpouseEdgeData } from "./SpouseEdge";
 import type { QuickRelation } from "../quickRelations";
@@ -104,11 +104,10 @@ export function TreeCanvas({
       }
       if (r.type === "sibling") {
         // Elder sits left (right handle) connecting to younger's left handle; falls back to
-        // personA/personB order when birth order isn't set for one or both.
-        const a = personById.get(r.personAId);
-        const b = personById.get(r.personBId);
-        const bIsOlder =
-          a?.birthOrder !== undefined && b?.birthOrder !== undefined && b.birthOrder < a.birthOrder;
+        // personA/personB order when a birth year isn't known for one or both.
+        const yearA = birthYear(personById.get(r.personAId));
+        const yearB = birthYear(personById.get(r.personBId));
+        const bIsOlder = yearA !== undefined && yearB !== undefined && yearB < yearA;
         const [elderId, youngerId] = bIsOlder ? [r.personBId, r.personAId] : [r.personAId, r.personBId];
         return {
           id: r.id,

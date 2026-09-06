@@ -16,11 +16,13 @@ export interface PersonNodeData {
 }
 
 const SHAPE_SIZE = 52;
+const HANDLE_INSET = 6;
 
 export function PersonNode({ data }: { data: PersonNodeData }) {
   const { person, village, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
   const [open, setOpen] = useState(false);
   const interactive = mode === "edit" && editable;
+  const dotColor = village?.color ?? "#8b8b8b";
 
   useEffect(() => {
     if (!open) return;
@@ -52,49 +54,65 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
   }
 
   return (
-    <div
-      className="person-node-wrap"
-      style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: 96 }}
-    >
+    <div className="person-node-wrap" style={{ position: "relative", width: SHAPE_SIZE, height: SHAPE_SIZE }}>
       {/* Parent-child: child's top connects to parent's bottom. */}
-      <Handle type="target" position={Position.Top} id="top" />
+      <Handle type="target" position={Position.Top} id="top" style={{ top: HANDLE_INSET, background: dotColor }} />
       {/* Siblings: elder's right connects to younger's left. Spouses: personA's right to personB's left. */}
-      <Handle type="target" position={Position.Left} id="left" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        style={{ left: HANDLE_INSET, background: dotColor }}
+      />
 
       <div
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         style={{
-          width: SHAPE_SIZE,
-          background: village?.color ?? "#8b8b8b",
+          width: "100%",
+          height: "100%",
+          background: dotColor,
           border: highlighted ? "3px solid #ffd23f" : "2px solid rgba(0,0,0,0.35)",
           opacity: person.isDeceased ? 0.55 : 1,
           boxShadow: highlighted ? "0 0 0 4px rgba(255,210,63,0.35)" : "none",
-          height: SHAPE_SIZE,
           cursor: "pointer",
           ...shapeStyle,
         }}
         title={interactive ? `${person.name} (right-click for options)` : person.name}
       />
 
-      <Handle type="source" position={Position.Bottom} id="bottom" />
-      <Handle type="source" position={Position.Right} id="right" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        style={{ bottom: HANDLE_INSET, background: dotColor }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        style={{ right: HANDLE_INSET, background: dotColor }}
+      />
 
       <div
         style={{
+          position: "absolute",
+          top: "100%",
+          left: "50%",
+          transform: "translateX(-50%)",
           marginTop: 6,
+          width: 96,
           fontSize: 12,
           textAlign: "center",
           lineHeight: 1.2,
-          maxWidth: 96,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
+          pointerEvents: "none",
         }}
       >
         {person.name}
       </div>
-      {!person.verified && <div style={{ fontSize: 10, color: "#c07800" }}>unverified</div>}
 
       {interactive && open && (
         <div className="quick-menu" onClick={(e) => e.stopPropagation()}>

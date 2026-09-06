@@ -88,7 +88,6 @@ export const api = {
       isDeceased?: boolean;
       casteId?: string;
       subcasteId?: string;
-      birthOrder?: number;
       nativeVillageId?: string;
       currentVillageId?: string;
       locationHistory?: LocationEvent[];
@@ -109,6 +108,7 @@ export const api = {
         isDeceased: boolean;
         casteId: string;
         subcasteId: string;
+        verified: boolean;
         nativeVillageId: string;
         currentVillageId: string;
       }>

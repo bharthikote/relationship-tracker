@@ -81,6 +81,11 @@ export function PersonDetailPanel({
     onPathResult(result);
   };
 
+  const markVerified = async () => {
+    const updated = await api.people.update(detail.id, { verified: true });
+    setDetail({ ...detail, verified: updated.verified });
+  };
+
   return (
     <div className="detail-panel">
       <button className="close-btn" onClick={onClose}>
@@ -123,6 +128,7 @@ export function PersonDetailPanel({
       <div className="detail-actions">
         {canEdit && <button onClick={() => onRename(detail.id)}>Rename</button>}
         {canEdit && <button onClick={() => onAddRelative(detail.id)}>Add relative to this person</button>}
+        {canEdit && !detail.verified && <button onClick={markVerified}>Mark as verified</button>}
         {selfId && selfId !== detail.id && (
           <button onClick={findRelationship}>Find my relationship to this person</button>
         )}

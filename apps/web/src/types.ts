@@ -17,7 +17,6 @@ export interface Person {
   photoUrl?: string;
   casteId?: string;
   subcasteId?: string;
-  birthOrder?: number;
   nativeVillageId?: string;
   currentVillageId?: string;
   locationHistory: LocationEvent[];

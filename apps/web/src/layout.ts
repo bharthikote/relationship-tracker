@@ -9,6 +9,12 @@ export interface LayoutNode {
 const GEN_HEIGHT = 200;
 const NODE_WIDTH = 160;
 
+export function birthYear(p?: Person): number | undefined {
+  if (!p?.dob) return undefined;
+  const year = parseInt(p.dob, 10);
+  return Number.isFinite(year) ? year : undefined;
+}
+
 export function computeLayout(people: Person[], relationships: Relationship[]): LayoutNode[] {
   const byId = new Map(people.map((p) => [p.id, p]));
   const parentsOf = new Map<string, string[]>();
@@ -74,11 +80,13 @@ export function computeLayout(people: Person[], relationships: Relationship[]): 
   const sortedGens = [...byGen.keys()].sort((a, b) => a - b);
 
   for (const g of sortedGens) {
-    // Elder siblings (lower birthOrder) end up left, younger right; people without a birthOrder
-    // (e.g. cousins from a different parent sharing this generation) stay in their original order.
-    const ids = [...byGen.get(g)!].sort(
-      (a, b) => (byId.get(a)?.birthOrder ?? 0) - (byId.get(b)?.birthOrder ?? 0)
-    );
+    // Elder siblings (earlier year of birth) end up left, younger right. When either side has no
+    // parsable birth year, leave their relative order untouched (stable sort) rather than guessing.
+    const ids = [...byGen.get(g)!].sort((a, b) => {
+      const ya = birthYear(byId.get(a));
+      const yb = birthYear(byId.get(b));
+      return ya === undefined || yb === undefined ? 0 : ya - yb;
+    });
     const placed = new Set<string>();
     const ordered: string[] = [];
     for (const id of ids) {
