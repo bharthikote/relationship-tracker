@@ -63,6 +63,13 @@ select {
   z-index: 20;
 }
 
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
 .app-title {
   font-size: 16px;
   font-weight: 600;

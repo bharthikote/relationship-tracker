@@ -164,32 +164,34 @@ function TreeApp({
       <header className="top-bar">
         <h1 className="app-title">Family Tree</h1>
         <SearchBar people={people} onSelect={setSelectedPersonId} />
-        <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
-          Villages
-        </button>
-        <div className="mode-toggle">
-          <button
-            className={mode === "view" ? "active" : ""}
-            onClick={() => setMode("view")}
-            aria-label="View mode"
-            title="View"
-          >
-            <EyeIcon />
+        <div className="top-bar-actions">
+          <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
+            Villages
           </button>
-          <button
-            className={mode === "edit" ? "active" : ""}
-            onClick={() => setMode("edit")}
-            aria-label="Edit mode"
-            title="Edit"
-          >
-            <PencilIcon />
-          </button>
+          <div className="mode-toggle">
+            <button
+              className={mode === "view" ? "active" : ""}
+              onClick={() => setMode("view")}
+              aria-label="View mode"
+              title="View"
+            >
+              <EyeIcon />
+            </button>
+            <button
+              className={mode === "edit" ? "active" : ""}
+              onClick={() => setMode("edit")}
+              aria-label="Edit mode"
+              title="Edit"
+            >
+              <PencilIcon />
+            </button>
+          </div>
+          <UserMenu
+            displayName={profile.displayName || profile.email.split("@")[0]}
+            onOpenProfile={() => setAccountOpen(true)}
+            onSignOut={signOut}
+          />
         </div>
-        <UserMenu
-          displayName={profile.displayName || profile.email.split("@")[0]}
-          onOpenProfile={() => setAccountOpen(true)}
-          onSignOut={signOut}
-        />
       </header>
 
       {legendOpen && (
