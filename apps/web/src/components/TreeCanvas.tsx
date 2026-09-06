@@ -10,9 +10,10 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { Person, Relationship, Village } from "../types";
-import { computeLayout, birthYear } from "../layout";
-import { PersonNode, type PersonNodeData } from "./PersonNode";
+import { computeLayout } from "../layout";
+import { PersonNode, SHAPE_SIZE, type PersonNodeData } from "./PersonNode";
 import { SpouseEdge, type SpouseEdgeData } from "./SpouseEdge";
+import { JunctionNode } from "./JunctionNode";
 import type { QuickRelation } from "../quickRelations";
 import { EnterFullscreenIcon, ExitFullscreenIcon } from "../icons";
 
@@ -37,7 +38,7 @@ function FullscreenControlButton() {
   );
 }
 
-const nodeTypes = { person: PersonNode };
+const nodeTypes = { person: PersonNode, junction: JunctionNode };
 const edgeTypes = { spouse: SpouseEdge };
 
 interface Props {
@@ -66,12 +67,16 @@ export function TreeCanvas({
   highlightedEdgeKeys,
 }: Props) {
   const villageById = useMemo(() => new Map(villages.map((v) => [v.id, v])), [villages]);
-  const personById = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
 
   const { nodes, edges } = useMemo(() => {
     const layout = computeLayout(people, relationships);
+    const posById = new Map(layout.map((l) => [l.person.id, { x: l.x, y: l.y }]));
+    const centerOf = (id: string) => {
+      const p = posById.get(id);
+      return p ? { x: p.x + SHAPE_SIZE / 2, y: p.y + SHAPE_SIZE / 2 } : undefined;
+    };
 
-    const nodes: Node<PersonNodeData>[] = layout.map(({ person, x, y }) => ({
+    const personNodes: Node<PersonNodeData>[] = layout.map(({ person, x, y }) => ({
       id: person.id,
       type: "person",
       position: { x, y },
@@ -87,10 +92,85 @@ export function TreeCanvas({
       },
     }));
 
-    const edges: Edge<SpouseEdgeData>[] = relationships.map((r) => {
-      const key = `${r.personAId}-${r.personBId}`;
-      const highlighted = highlightedEdgeKeys?.has(key) || highlightedEdgeKeys?.has(`${r.personBId}-${r.personAId}`);
-      if (r.type === "spouse") {
+    const spousePairs = new Set<string>();
+    for (const r of relationships) {
+      if (r.type === "spouse") spousePairs.add([r.personAId, r.personBId].sort().join("|"));
+    }
+
+    // Group parent-child relationships by child so a child with two linked parents gets ONE
+    // descent line from the midpoint of their marriage line, instead of two separate lines.
+    const parentsOfChild = new Map<string, { parentId: string; relId: string }[]>();
+    for (const r of relationships) {
+      if (r.type !== "parent-child") continue;
+      if (!parentsOfChild.has(r.personBId)) parentsOfChild.set(r.personBId, []);
+      parentsOfChild.get(r.personBId)!.push({ parentId: r.personAId, relId: r.id });
+    }
+
+    const junctionNodes: Node<Record<string, never>>[] = [];
+    const junctionIdByPair = new Map<string, string>();
+    const familyEdges: Edge[] = [];
+
+    for (const [childId, parents] of parentsOfChild) {
+      const highlighted =
+        highlightedEdgeKeys?.has(`${parents[0]?.parentId}-${childId}`) ||
+        highlightedEdgeKeys?.has(`${childId}-${parents[0]?.parentId}`);
+      const style = { stroke: highlighted ? "#ffd23f" : "#555", strokeWidth: highlighted ? 3 : 1.5 };
+
+      const pairKey =
+        parents.length === 2 ? [parents[0].parentId, parents[1].parentId].sort().join("|") : undefined;
+
+      if (pairKey && spousePairs.has(pairKey)) {
+        let junctionId = junctionIdByPair.get(pairKey);
+        if (!junctionId) {
+          const [aId, bId] = pairKey.split("|");
+          const a = centerOf(aId);
+          const b = centerOf(bId);
+          if (a && b) {
+            junctionId = `junction-${pairKey}`;
+            junctionIdByPair.set(pairKey, junctionId);
+            junctionNodes.push({
+              id: junctionId,
+              type: "junction",
+              position: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+              data: {},
+              draggable: false,
+              selectable: false,
+            });
+          }
+        }
+        if (junctionId) {
+          familyEdges.push({
+            id: `family-${pairKey}-${childId}`,
+            source: junctionId,
+            target: childId,
+            targetHandle: "top",
+            type: "smoothstep",
+            style,
+          });
+          continue;
+        }
+      }
+
+      // Single recorded parent (or an un-partnered pair): direct line(s) from each parent.
+      for (const { parentId, relId } of parents) {
+        familyEdges.push({
+          id: relId,
+          source: parentId,
+          sourceHandle: "bottom",
+          target: childId,
+          targetHandle: "top",
+          type: "smoothstep",
+          style,
+        });
+      }
+    }
+
+    const spouseEdges: Edge<SpouseEdgeData>[] = relationships
+      .filter((r) => r.type === "spouse")
+      .map((r) => {
+        const key = `${r.personAId}-${r.personBId}`;
+        const highlighted =
+          highlightedEdgeKeys?.has(key) || highlightedEdgeKeys?.has(`${r.personBId}-${r.personAId}`);
         // personA sits left (right handle), personB sits right (left handle).
         return {
           id: r.id,
@@ -101,41 +181,18 @@ export function TreeCanvas({
           type: "spouse",
           data: { isConsanguineous: r.isConsanguineous, highlighted },
         };
-      }
-      if (r.type === "sibling") {
-        // Elder sits left (right handle) connecting to younger's left handle; falls back to
-        // personA/personB order when a birth year isn't known for one or both.
-        const yearA = birthYear(personById.get(r.personAId));
-        const yearB = birthYear(personById.get(r.personBId));
-        const bIsOlder = yearA !== undefined && yearB !== undefined && yearB < yearA;
-        const [elderId, youngerId] = bIsOlder ? [r.personBId, r.personAId] : [r.personAId, r.personBId];
-        return {
-          id: r.id,
-          source: elderId,
-          sourceHandle: "right",
-          target: youngerId,
-          targetHandle: "left",
-          type: "straight",
-          style: { stroke: highlighted ? "#ffd23f" : "#aaa", strokeDasharray: "4 3" },
-        };
-      }
-      return {
-        id: r.id,
-        source: r.personAId,
-        sourceHandle: "bottom",
-        target: r.personBId,
-        targetHandle: "top",
-        type: "smoothstep",
-        style: { stroke: highlighted ? "#ffd23f" : "#555", strokeWidth: highlighted ? 3 : 1.5 },
-      };
-    });
+      });
 
-    return { nodes, edges };
+    // Siblings connect implicitly through their shared parents' descent line -- no direct edge.
+
+    return {
+      nodes: [...personNodes, ...junctionNodes],
+      edges: [...spouseEdges, ...familyEdges],
+    };
   }, [
     people,
     relationships,
     villageById,
-    personById,
     highlightedPersonIds,
     highlightedEdgeKeys,
     mode,

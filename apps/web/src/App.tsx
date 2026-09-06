@@ -270,6 +270,7 @@ function TreeApp({
           villages={villages}
           castes={castes}
           subcastes={subcastes}
+          relationships={relationships}
           preset={addFlowPreset ?? undefined}
           onClose={() => {
             setAddFlowAnchorId(null);

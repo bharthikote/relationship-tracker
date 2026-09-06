@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { api } from "../api";
-import type { AttachRelationType, Caste, Gender, Person, PersonSummary, Subcaste, Village } from "../types";
+import type {
+  AttachRelationType,
+  Caste,
+  Gender,
+  Person,
+  PersonSummary,
+  Relationship,
+  Subcaste,
+  Village,
+} from "../types";
 import { AutosuggestInput } from "./AutosuggestInput";
 
 const PALETTE = ["#2f81f7", "#e0763a", "#3fb950", "#a371f7", "#db61a2", "#d29922", "#39c5cf"];
@@ -17,6 +26,7 @@ interface Props {
   villages: Village[];
   castes: Caste[];
   subcastes: Subcaste[];
+  relationships: Relationship[];
   preset?: { relationType: AttachRelationType; gender: Gender };
   onClose: () => void;
   onCreated: (village?: Village) => void;
@@ -24,7 +34,16 @@ interface Props {
 
 type Step = "relation" | "details" | "consanguineous" | "location" | "duplicates" | "confirm";
 
-export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, preset, onClose, onCreated }: Props) {
+export function AddRelativeFlow({
+  anchorPerson,
+  villages,
+  castes,
+  subcastes,
+  relationships,
+  preset,
+  onClose,
+  onCreated,
+}: Props) {
   const [step, setStep] = useState<Step>(preset ? "details" : "relation");
   const [relationType, setRelationType] = useState<AttachRelationType | null>(preset?.relationType ?? null);
   const [name, setName] = useState("");
@@ -48,6 +67,23 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
   const [error, setError] = useState<string | null>(null);
 
   const anchorVillageName = villages.find((v) => v.id === anchorPerson.currentVillageId)?.name ?? "";
+
+  // When adding a child, also link them to the anchor's spouse (if any) so the canvas can draw a
+  // single descent line from the middle of both parents instead of just the one who was clicked.
+  function anchorSpouseId(): string | undefined {
+    const rel = relationships.find(
+      (r) => r.type === "spouse" && (r.personAId === anchorPerson.id || r.personBId === anchorPerson.id)
+    );
+    if (!rel) return undefined;
+    return rel.personAId === anchorPerson.id ? rel.personBId : rel.personAId;
+  }
+
+  // Siblings no longer draw their own connecting line -- they read as siblings purely through
+  // sharing a parent bracket -- so a new sibling needs the anchor's existing parent link(s) too,
+  // or they'd render as a disconnected floating person.
+  function anchorParentIds(): string[] {
+    return relationships.filter((r) => r.type === "parent-child" && r.personBId === anchorPerson.id).map((r) => r.personAId);
+  }
 
   async function resolveVillage(nameInput: string): Promise<Village> {
     const trimmed = nameInput.trim();
@@ -91,6 +127,36 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
                 ? ["parent-child", linkExisting, anchorPerson.id]
                 : ["sibling", anchorPerson.id, linkExisting];
         await api.relationships.create({ type, personAId, personBId, isConsanguineous });
+
+        if (relationType === "child") {
+          const spouseId = anchorSpouseId();
+          const alreadyLinked = relationships.some(
+            (r) => r.type === "parent-child" && r.personAId === spouseId && r.personBId === linkExisting
+          );
+          if (spouseId && !alreadyLinked) {
+            await api.relationships.create({
+              type: "parent-child",
+              personAId: spouseId,
+              personBId: linkExisting,
+            });
+          }
+        }
+
+        if (relationType === "sibling") {
+          for (const parentId of anchorParentIds()) {
+            const alreadyLinked = relationships.some(
+              (r) => r.type === "parent-child" && r.personAId === parentId && r.personBId === linkExisting
+            );
+            if (!alreadyLinked) {
+              await api.relationships.create({
+                type: "parent-child",
+                personAId: parentId,
+                personBId: linkExisting,
+              });
+            }
+          }
+        }
+
         onCreated();
         return;
       }
@@ -106,7 +172,7 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
       const casteRow = caste.trim() ? await resolveCaste(caste) : undefined;
       const subcasteRow = subcaste.trim() ? await resolveSubcaste(subcaste) : undefined;
 
-      await api.people.create({
+      const { person: newPerson } = await api.people.create({
         name,
         gender,
         isDeceased,
@@ -118,6 +184,28 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
         attachTo: { personId: anchorPerson.id, relationType: relationType! },
         isConsanguineous,
       });
+
+      if (relationType === "child") {
+        const spouseId = anchorSpouseId();
+        if (spouseId) {
+          await api.relationships.create({
+            type: "parent-child",
+            personAId: spouseId,
+            personBId: newPerson.id,
+          });
+        }
+      }
+
+      if (relationType === "sibling") {
+        for (const parentId of anchorParentIds()) {
+          await api.relationships.create({
+            type: "parent-child",
+            personAId: parentId,
+            personBId: newPerson.id,
+          });
+        }
+      }
+
       onCreated(nativeVillage);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");

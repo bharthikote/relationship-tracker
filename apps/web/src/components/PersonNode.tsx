@@ -15,8 +15,7 @@ export interface PersonNodeData {
   [key: string]: unknown;
 }
 
-const SHAPE_SIZE = 52;
-const HANDLE_INSET = 6;
+export const SHAPE_SIZE = 52;
 
 export function PersonNode({ data }: { data: PersonNodeData }) {
   const { person, village, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
@@ -56,13 +55,18 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
   return (
     <div className="person-node-wrap" style={{ position: "relative", width: SHAPE_SIZE, height: SHAPE_SIZE }}>
       {/* Parent-child: child's top connects to parent's bottom. */}
-      <Handle type="target" position={Position.Top} id="top" style={{ top: HANDLE_INSET, background: dotColor }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        style={{ background: dotColor, borderColor: dotColor }}
+      />
       {/* Siblings: elder's right connects to younger's left. Spouses: personA's right to personB's left. */}
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        style={{ left: HANDLE_INSET, background: dotColor }}
+        style={{ background: dotColor, borderColor: dotColor }}
       />
 
       <div
@@ -85,13 +89,13 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
         type="source"
         position={Position.Bottom}
         id="bottom"
-        style={{ bottom: HANDLE_INSET, background: dotColor }}
+        style={{ background: dotColor, borderColor: dotColor }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        style={{ right: HANDLE_INSET, background: dotColor }}
+        style={{ background: dotColor, borderColor: dotColor }}
       />
 
       <div
