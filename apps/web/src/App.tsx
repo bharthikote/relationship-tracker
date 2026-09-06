@@ -161,12 +161,14 @@ function TreeApp({
 
   return (
     <div className="app-shell">
-      <header className="top-bar">
-        <h1 className="app-title">Family Tree</h1>
-        <SearchBar people={people} onSelect={setSelectedPersonId} />
-        <div className="top-bar-actions">
+      <main className="canvas-area">
+        <div className="floating-controls-left">
+          <span className="app-title-floating">Family Tree</span>
+          <SearchBar people={people} onSelect={setSelectedPersonId} />
+        </div>
+        <div className="floating-controls-right">
           <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
-            Villages
+            View Settings
           </button>
           <div className="mode-toggle">
             <button
@@ -192,20 +194,18 @@ function TreeApp({
             onSignOut={signOut}
           />
         </div>
-      </header>
 
-      {legendOpen && (
-        <div className="legend-drawer">
-          <VillageLegend
-            villages={villages}
-            people={people}
-            activeVillageId={activeVillageId}
-            onFilter={setActiveVillageId}
-          />
-        </div>
-      )}
+        {legendOpen && (
+          <div className="legend-drawer">
+            <VillageLegend
+              villages={villages}
+              people={people}
+              activeVillageId={activeVillageId}
+              onFilter={setActiveVillageId}
+            />
+          </div>
+        )}
 
-      <main className="canvas-area">
         {people.length === 0 ? (
           <div className="empty-state">
             <p>No one visible yet.</p>
