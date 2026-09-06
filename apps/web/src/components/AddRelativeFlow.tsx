@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
-import type { AttachRelationType, Gender, Person, PersonSummary, Village } from "../types";
+import type { AttachRelationType, Caste, Gender, Person, PersonSummary, Subcaste, Village } from "../types";
+import { AutosuggestInput } from "./AutosuggestInput";
 
 const PALETTE = ["#2f81f7", "#e0763a", "#3fb950", "#a371f7", "#db61a2", "#d29922", "#39c5cf"];
 
@@ -14,6 +15,8 @@ const RELATION_LABELS: Record<AttachRelationType, string> = {
 interface Props {
   anchorPerson: Person;
   villages: Village[];
+  castes: Caste[];
+  subcastes: Subcaste[];
   preset?: { relationType: AttachRelationType; gender: Gender };
   onClose: () => void;
   onCreated: (village?: Village) => void;
@@ -21,7 +24,7 @@ interface Props {
 
 type Step = "relation" | "details" | "consanguineous" | "location" | "duplicates" | "confirm";
 
-export function AddRelativeFlow({ anchorPerson, villages, preset, onClose, onCreated }: Props) {
+export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, preset, onClose, onCreated }: Props) {
   const [step, setStep] = useState<Step>(preset ? "details" : "relation");
   const [relationType, setRelationType] = useState<AttachRelationType | null>(preset?.relationType ?? null);
   const [name, setName] = useState("");
@@ -48,6 +51,20 @@ export function AddRelativeFlow({ anchorPerson, villages, preset, onClose, onCre
     if (existing) return existing;
     const color = PALETTE[villages.length % PALETTE.length];
     return api.villages.create({ name: trimmed, color });
+  }
+
+  async function resolveCaste(nameInput: string): Promise<Caste> {
+    const trimmed = nameInput.trim();
+    const existing = castes.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing;
+    return api.castes.create(trimmed);
+  }
+
+  async function resolveSubcaste(nameInput: string): Promise<Subcaste> {
+    const trimmed = nameInput.trim();
+    const existing = subcastes.find((s) => s.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing;
+    return api.subcastes.create(trimmed);
   }
 
   async function goToDuplicates() {
@@ -82,12 +99,15 @@ export function AddRelativeFlow({ anchorPerson, villages, preset, onClose, onCre
         currentVillage = await resolveVillage(currentPlaceName);
       }
 
+      const casteRow = caste.trim() ? await resolveCaste(caste) : undefined;
+      const subcasteRow = subcaste.trim() ? await resolveSubcaste(subcaste) : undefined;
+
       await api.people.create({
         name,
         gender,
         isDeceased,
-        caste: caste.trim() || undefined,
-        subcaste: subcaste.trim() || undefined,
+        casteId: casteRow?.id,
+        subcasteId: subcasteRow?.id,
         dob: birthYear.trim() || undefined,
         nativeVillageId: nativeVillage?.id,
         currentVillageId: currentVillage?.id ?? nativeVillage?.id,
@@ -152,11 +172,15 @@ export function AddRelativeFlow({ anchorPerson, villages, preset, onClose, onCre
             )}
             <label>
               Caste
-              <input value={caste} onChange={(e) => setCaste(e.target.value)} />
+              <AutosuggestInput value={caste} onChange={setCaste} options={castes.map((c) => c.name)} />
             </label>
             <label>
               Subcaste
-              <input value={subcaste} onChange={(e) => setSubcaste(e.target.value)} />
+              <AutosuggestInput
+                value={subcaste}
+                onChange={setSubcaste}
+                options={subcastes.map((s) => s.name)}
+              />
             </label>
             <label>
               Year of birth
@@ -210,9 +234,10 @@ export function AddRelativeFlow({ anchorPerson, villages, preset, onClose, onCre
         {step === "location" && (
           <>
             <h3>Which village is {name || "this person"} from?</h3>
-            <input
+            <AutosuggestInput
               value={villageName}
-              onChange={(e) => setVillageName(e.target.value)}
+              onChange={setVillageName}
+              options={villages.map((v) => v.name)}
               placeholder={anchorVillageName}
             />
             <label className="checkbox-row">
@@ -232,7 +257,11 @@ export function AddRelativeFlow({ anchorPerson, villages, preset, onClose, onCre
                 {!sameAsVillage && (
                   <label>
                     Current place
-                    <input value={currentPlaceName} onChange={(e) => setCurrentPlaceName(e.target.value)} />
+                    <AutosuggestInput
+                      value={currentPlaceName}
+                      onChange={setCurrentPlaceName}
+                      options={villages.map((v) => v.name)}
+                    />
                   </label>
                 )}
               </>

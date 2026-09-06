@@ -15,8 +15,8 @@ export interface Person {
   dob?: string;
   isDeceased: boolean;
   photoUrl?: string;
-  caste?: string;
-  subcaste?: string;
+  casteId?: string;
+  subcasteId?: string;
   nativeVillageId?: string;
   currentVillageId?: string;
   locationHistory: LocationEvent[];
@@ -47,4 +47,14 @@ export interface Village {
   type: VillageType;
   color: string;
   region?: string;
+}
+
+export interface Caste {
+  id: string;
+  name: string;
+}
+
+export interface Subcaste {
+  id: string;
+  name: string;
 }

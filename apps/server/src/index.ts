@@ -40,8 +40,8 @@ function toApiPerson(p: DbPerson): Person {
     dob: p.dob ?? undefined,
     isDeceased: p.isDeceased,
     photoUrl: p.photoUrl ?? undefined,
-    caste: p.caste ?? undefined,
-    subcaste: p.subcaste ?? undefined,
+    casteId: p.casteId ?? undefined,
+    subcasteId: p.subcasteId ?? undefined,
     nativeVillageId: p.nativeVillageId ?? undefined,
     currentVillageId: p.currentVillageId ?? undefined,
     locationHistory: (p.locationHistory as unknown as Person["locationHistory"]) ?? [],
@@ -237,10 +237,36 @@ app.get("/api/villages", async (_req, res) => {
 });
 
 app.post("/api/villages", async (req, res) => {
-  const { name, type = "village", color, region } = req.body ?? {};
+  const { name: rawName, type = "village", color, region } = req.body ?? {};
+  const name = String(rawName ?? "").trim();
   if (!name || !color) return res.status(400).json({ error: "name and color are required" });
+  const existing = await prisma.village.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+  if (existing) return res.json(existing);
   const v = await prisma.village.create({ data: { name, type, color, region } });
   res.status(201).json(v);
+});
+
+// ---- Castes / Subcastes (shared reference lists, crowd-sourced) ----
+app.get("/api/castes", async (_req, res) => {
+  res.json(await prisma.caste.findMany({ orderBy: { name: "asc" } }));
+});
+
+app.post("/api/castes", async (req, res) => {
+  const name = String(req.body?.name ?? "").trim();
+  if (!name) return res.status(400).json({ error: "name is required" });
+  const existing = await prisma.caste.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+  res.status(existing ? 200 : 201).json(existing ?? (await prisma.caste.create({ data: { name } })));
+});
+
+app.get("/api/subcastes", async (_req, res) => {
+  res.json(await prisma.subcaste.findMany({ orderBy: { name: "asc" } }));
+});
+
+app.post("/api/subcastes", async (req, res) => {
+  const name = String(req.body?.name ?? "").trim();
+  if (!name) return res.status(400).json({ error: "name is required" });
+  const existing = await prisma.subcaste.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+  res.status(existing ? 200 : 201).json(existing ?? (await prisma.subcaste.create({ data: { name } })));
 });
 
 // ---- People ----
@@ -303,8 +329,8 @@ app.post("/api/people", async (req, res) => {
       dob: body.dob,
       isDeceased: !!body.isDeceased,
       photoUrl: body.photoUrl,
-      caste: body.caste,
-      subcaste: body.subcaste,
+      casteId: body.casteId,
+      subcasteId: body.subcasteId,
       nativeVillageId: body.nativeVillageId,
       currentVillageId: body.currentVillageId ?? body.nativeVillageId,
       locationHistory: body.locationHistory ?? [],
@@ -345,8 +371,8 @@ app.patch("/api/people/:id", async (req, res) => {
     "nameLocal",
     "dob",
     "isDeceased",
-    "caste",
-    "subcaste",
+    "casteId",
+    "subcasteId",
     "nativeVillageId",
     "currentVillageId",
   ] as const;

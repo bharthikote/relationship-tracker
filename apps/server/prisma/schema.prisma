@@ -87,6 +87,26 @@ model Village {
   @@index([name])
 }
 
+// Shared, crowd-sourced reference lists: any user can pick an existing caste/subcaste or add a
+// new one, which then becomes available for everyone else to reuse (same pattern as Village).
+model Caste {
+  id   String @id @default(uuid())
+  name String
+
+  people Person[]
+
+  @@index([name])
+}
+
+model Subcaste {
+  id   String @id @default(uuid())
+  name String
+
+  people Person[]
+
+  @@index([name])
+}
+
 model Person {
   id       String  @id @default(uuid())
   name     String
@@ -95,8 +115,6 @@ model Person {
   dob      String?
   isDeceased Boolean @default(false)
   photoUrl String?
-  caste    String?
-  subcaste String?
 
   ownerId String
   owner   Profile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -105,6 +123,10 @@ model Person {
   nativeVillage    Village? @relation("NativeVillage", fields: [nativeVillageId], references: [id])
   currentVillageId String?
   currentVillage   Village? @relation("CurrentVillage", fields: [currentVillageId], references: [id])
+  casteId    String?
+  caste      Caste?    @relation(fields: [casteId], references: [id])
+  subcasteId String?
+  subcaste   Subcaste? @relation(fields: [subcasteId], references: [id])
 
   // Array of { villageId, fromDate?, event } — see apps/server/src/types.ts LocationEvent
   locationHistory Json @default("[]")

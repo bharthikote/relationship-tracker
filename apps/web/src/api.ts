@@ -1,6 +1,7 @@
 import type {
   AdminProfile,
   AttachRelationType,
+  Caste,
   ConnectionRequestSummary,
   DiscoverProfile,
   LocationEvent,
@@ -10,6 +11,7 @@ import type {
   PersonSummary,
   Profile,
   Relationship,
+  Subcaste,
   TreeVisibility,
   Village,
 } from "./types";
@@ -63,6 +65,15 @@ export const api = {
     create: (data: { name: string; type?: string; color: string; region?: string }) =>
       req<Village>("/api/villages", { method: "POST", body: JSON.stringify(data) }),
   },
+  castes: {
+    list: () => req<Caste[]>("/api/castes"),
+    create: (name: string) => req<Caste>("/api/castes", { method: "POST", body: JSON.stringify({ name }) }),
+  },
+  subcastes: {
+    list: () => req<Subcaste[]>("/api/subcastes"),
+    create: (name: string) =>
+      req<Subcaste>("/api/subcastes", { method: "POST", body: JSON.stringify({ name }) }),
+  },
   people: {
     list: (params?: { q?: string; villageId?: string }) => {
       const qs = new URLSearchParams(params as Record<string, string>).toString();
@@ -75,8 +86,8 @@ export const api = {
       gender: string;
       dob?: string;
       isDeceased?: boolean;
-      caste?: string;
-      subcaste?: string;
+      casteId?: string;
+      subcasteId?: string;
       nativeVillageId?: string;
       currentVillageId?: string;
       locationHistory?: LocationEvent[];
@@ -95,8 +106,8 @@ export const api = {
         nameLocal: string;
         dob: string;
         isDeceased: boolean;
-        caste: string;
-        subcaste: string;
+        casteId: string;
+        subcasteId: string;
         nativeVillageId: string;
         currentVillageId: string;
       }>

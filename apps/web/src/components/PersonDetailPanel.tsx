@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { PathResult, PersonDetail, PersonSummary, Village } from "../types";
+import type { Caste, PathResult, PersonDetail, PersonSummary, Subcaste, Village } from "../types";
 
 interface Props {
   personId: string;
   villages: Village[];
+  castes: Caste[];
+  subcastes: Subcaste[];
   selfId: string | null;
   canEdit: boolean;
   onSetSelf: (id: string) => void;
@@ -15,8 +17,8 @@ interface Props {
   onPathResult: (result: PathResult | null) => void;
 }
 
-function villageName(villages: Village[], id?: string) {
-  return villages.find((v) => v.id === id)?.name ?? "Unknown";
+function nameOf(list: { id: string; name: string }[], id?: string) {
+  return list.find((x) => x.id === id)?.name;
 }
 
 function RelationList({
@@ -44,6 +46,8 @@ function RelationList({
 export function PersonDetailPanel({
   personId,
   villages,
+  castes,
+  subcastes,
   selfId,
   canEdit,
   onSetSelf,
@@ -64,9 +68,11 @@ export function PersonDetailPanel({
 
   if (!detail) return <div className="detail-panel">Loading...</div>;
 
-  const born = villageName(villages, detail.nativeVillageId);
-  const livesIn = villageName(villages, detail.currentVillageId);
+  const born = nameOf(villages, detail.nativeVillageId) ?? "Unknown";
+  const livesIn = nameOf(villages, detail.currentVillageId) ?? "Unknown";
   const moved = detail.nativeVillageId !== detail.currentVillageId;
+  const casteName = nameOf(castes, detail.casteId);
+  const subcasteName = nameOf(subcastes, detail.subcasteId);
 
   const findRelationship = async () => {
     if (!selfId) return;
@@ -100,11 +106,11 @@ export function PersonDetailPanel({
             Born <strong>{detail.dob}</strong>
           </div>
         )}
-        {(detail.caste || detail.subcaste) && (
+        {(casteName || subcasteName) && (
           <div>
-            {detail.caste}
-            {detail.caste && detail.subcaste ? " — " : ""}
-            {detail.subcaste}
+            {casteName}
+            {casteName && subcasteName ? " — " : ""}
+            {subcasteName}
           </div>
         )}
       </div>

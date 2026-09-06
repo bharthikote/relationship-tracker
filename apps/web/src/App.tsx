@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import type { AttachRelationType, Gender, PathResult, Person, Profile, Relationship, Village } from "./types";
+import type {
+  AttachRelationType,
+  Caste,
+  Gender,
+  PathResult,
+  Person,
+  Profile,
+  Relationship,
+  Subcaste,
+  Village,
+} from "./types";
 import { TreeCanvas } from "./components/TreeCanvas";
 import { SearchBar } from "./components/SearchBar";
 import { VillageLegend } from "./components/VillageLegend";
@@ -51,6 +61,8 @@ function TreeApp({
   const [people, setPeople] = useState<Person[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [villages, setVillages] = useState<Village[]>([]);
+  const [castes, setCastes] = useState<Caste[]>([]);
+  const [subcastes, setSubcastes] = useState<Subcaste[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [addFlowAnchorId, setAddFlowAnchorId] = useState<string | null>(null);
   const [addFlowPreset, setAddFlowPreset] = useState<{ relationType: AttachRelationType; gender: Gender } | null>(
@@ -66,14 +78,18 @@ function TreeApp({
   const [connectedOwnerIds, setConnectedOwnerIds] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
-    const [p, r, v] = await Promise.all([
+    const [p, r, v, c, sc] = await Promise.all([
       api.people.list(),
       api.relationships.list(),
       api.villages.list(),
+      api.castes.list(),
+      api.subcastes.list(),
     ]);
     setPeople(p);
     setRelationships(r);
     setVillages(v);
+    setCastes(c);
+    setSubcastes(sc);
   }, []);
 
   useEffect(() => {
@@ -148,6 +164,9 @@ function TreeApp({
       <header className="top-bar">
         <h1 className="app-title">Family Tree</h1>
         <SearchBar people={people} onSelect={setSelectedPersonId} />
+        <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
+          Villages
+        </button>
         <div className="mode-toggle">
           <button
             className={mode === "view" ? "active" : ""}
@@ -166,9 +185,6 @@ function TreeApp({
             <PencilIcon />
           </button>
         </div>
-        <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
-          Villages
-        </button>
         <UserMenu
           displayName={profile.displayName || profile.email.split("@")[0]}
           onOpenProfile={() => setAccountOpen(true)}
@@ -227,6 +243,8 @@ function TreeApp({
         <PersonDetailPanel
           personId={selectedPersonId}
           villages={villages}
+          castes={castes}
+          subcastes={subcastes}
           selfId={selfId}
           canEdit={canEditSelected}
           onSetSelf={setSelf}
@@ -248,6 +266,8 @@ function TreeApp({
         <AddRelativeFlow
           anchorPerson={anchorPerson}
           villages={villages}
+          castes={castes}
+          subcastes={subcastes}
           preset={addFlowPreset ?? undefined}
           onClose={() => {
             setAddFlowAnchorId(null);
