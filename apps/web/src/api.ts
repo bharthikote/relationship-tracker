@@ -75,6 +75,8 @@ export const api = {
       gender: string;
       dob?: string;
       isDeceased?: boolean;
+      caste?: string;
+      subcaste?: string;
       nativeVillageId?: string;
       currentVillageId?: string;
       locationHistory?: LocationEvent[];
@@ -86,6 +88,19 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    update: (
+      id: string,
+      data: Partial<{
+        name: string;
+        nameLocal: string;
+        dob: string;
+        isDeceased: boolean;
+        caste: string;
+        subcaste: string;
+        nativeVillageId: string;
+        currentVillageId: string;
+      }>
+    ) => req<Person>(`/api/people/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     duplicates: (name: string) => req<PersonSummary[]>(`/api/duplicates?name=${encodeURIComponent(name)}`),
   },
   relationships: {

@@ -15,6 +15,8 @@ export interface Person {
   dob?: string;
   isDeceased: boolean;
   photoUrl?: string;
+  caste?: string;
+  subcaste?: string;
   nativeVillageId?: string;
   currentVillageId?: string;
   locationHistory: LocationEvent[];

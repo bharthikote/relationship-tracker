@@ -6,9 +6,11 @@ interface Props {
   personId: string;
   villages: Village[];
   selfId: string | null;
+  canEdit: boolean;
   onSetSelf: (id: string) => void;
   onSelectPerson: (id: string) => void;
   onAddRelative: (id: string) => void;
+  onRename: (id: string) => void;
   onClose: () => void;
   onPathResult: (result: PathResult | null) => void;
 }
@@ -43,9 +45,11 @@ export function PersonDetailPanel({
   personId,
   villages,
   selfId,
+  canEdit,
   onSetSelf,
   onSelectPerson,
   onAddRelative,
+  onRename,
   onClose,
   onPathResult,
 }: Props) {
@@ -91,6 +95,18 @@ export function PersonDetailPanel({
             Now living in <strong>{livesIn}</strong>
           </div>
         )}
+        {detail.dob && (
+          <div>
+            Born <strong>{detail.dob}</strong>
+          </div>
+        )}
+        {(detail.caste || detail.subcaste) && (
+          <div>
+            {detail.caste}
+            {detail.caste && detail.subcaste ? " — " : ""}
+            {detail.subcaste}
+          </div>
+        )}
       </div>
 
       <RelationList title="Spouse(s)" people={detail.relations.spouses} onSelectPerson={onSelectPerson} />
@@ -99,7 +115,8 @@ export function PersonDetailPanel({
       <RelationList title="Siblings" people={detail.relations.siblings} onSelectPerson={onSelectPerson} />
 
       <div className="detail-actions">
-        <button onClick={() => onAddRelative(detail.id)}>Add relative to this person</button>
+        {canEdit && <button onClick={() => onRename(detail.id)}>Rename</button>}
+        {canEdit && <button onClick={() => onAddRelative(detail.id)}>Add relative to this person</button>}
         {selfId && selfId !== detail.id && (
           <button onClick={findRelationship}>Find my relationship to this person</button>
         )}

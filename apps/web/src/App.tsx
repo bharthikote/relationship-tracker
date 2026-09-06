@@ -1,29 +1,38 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
-import type { PathResult, Person, Profile, Relationship, Village } from "./types";
+import type { AttachRelationType, Gender, PathResult, Person, Profile, Relationship, Village } from "./types";
 import { TreeCanvas } from "./components/TreeCanvas";
 import { SearchBar } from "./components/SearchBar";
 import { VillageLegend } from "./components/VillageLegend";
 import { PersonDetailPanel } from "./components/PersonDetailPanel";
 import { AddRelativeFlow } from "./components/AddRelativeFlow";
 import { AccountPanel } from "./components/AccountPanel";
+import { RenameModal } from "./components/RenameModal";
 import { useAuth } from "./auth/AuthContext";
 import { AuthPage } from "./auth/AuthPage";
+import { quickRelationToPreset, type QuickRelation } from "./quickRelations";
 
 function App() {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileError, setProfileError] = useState(false);
 
   useEffect(() => {
     if (!session) {
       setProfile(null);
       return;
     }
-    api.profile.me().then(setProfile);
+    setProfileError(false);
+    api.profile.me().then(setProfile).catch(() => setProfileError(true));
   }, [session]);
+
+  useEffect(() => {
+    if (profileError) signOut();
+  }, [profileError, signOut]);
 
   if (authLoading) return null;
   if (!session) return <AuthPage />;
+  if (profileError) return null;
   if (!profile) return null;
 
   return <TreeApp profile={profile} onProfileUpdated={setProfile} />;
@@ -41,11 +50,17 @@ function TreeApp({
   const [villages, setVillages] = useState<Village[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [addFlowAnchorId, setAddFlowAnchorId] = useState<string | null>(null);
+  const [addFlowPreset, setAddFlowPreset] = useState<{ relationType: AttachRelationType; gender: Gender } | null>(
+    null
+  );
+  const [renamePersonId, setRenamePersonId] = useState<string | null>(null);
   const [activeVillageId, setActiveVillageId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(() => localStorage.getItem(`selfId:${profile.id}`));
   const [pathResult, setPathResult] = useState<PathResult | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [mode, setMode] = useState<"view" | "edit">("edit");
+  const [connectedOwnerIds, setConnectedOwnerIds] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
     const [p, r, v] = await Promise.all([
@@ -62,6 +77,18 @@ function TreeApp({
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    api.connections.list().then((requests) => {
+      const ids = new Set<string>();
+      for (const r of requests) {
+        if (r.status !== "accepted") continue;
+        ids.add(r.fromUser.id);
+        ids.add(r.toUser.id);
+      }
+      setConnectedOwnerIds(ids);
+    });
+  }, [profile.id]);
+
   function setSelf(id: string) {
     setSelfId(id);
     localStorage.setItem(`selfId:${profile.id}`, id);
@@ -77,7 +104,14 @@ function TreeApp({
     setSelf(person.id);
   }
 
+  function openQuickAdd(personId: string, qr: QuickRelation) {
+    setAddFlowPreset(quickRelationToPreset(qr));
+    setAddFlowAnchorId(personId);
+  }
+
   const myPeople = people.filter((p) => p.ownerId === profile.id);
+  const editableOwnerIds: Set<string> | "all" =
+    profile.role === "super_admin" ? "all" : new Set([profile.id, ...connectedOwnerIds]);
   const visiblePeople = activeVillageId
     ? people.filter((p) => p.currentVillageId === activeVillageId)
     : people;
@@ -99,12 +133,26 @@ function TreeApp({
     : undefined;
 
   const anchorPerson = addFlowAnchorId ? people.find((p) => p.id === addFlowAnchorId) ?? null : null;
+  const renamePerson = renamePersonId ? people.find((p) => p.id === renamePersonId) ?? null : null;
+  const selectedPerson = selectedPersonId ? people.find((p) => p.id === selectedPersonId) ?? null : null;
+  const canEditSelected =
+    mode === "edit" &&
+    !!selectedPerson &&
+    (editableOwnerIds === "all" || editableOwnerIds.has(selectedPerson.ownerId));
 
   return (
     <div className="app-shell">
       <header className="top-bar">
         <h1 className="app-title">Village Family Tree</h1>
         <SearchBar people={people} onSelect={setSelectedPersonId} />
+        <div className="mode-toggle">
+          <button className={mode === "view" ? "active" : ""} onClick={() => setMode("view")}>
+            View
+          </button>
+          <button className={mode === "edit" ? "active" : ""} onClick={() => setMode("edit")}>
+            Edit
+          </button>
+        </div>
         <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
           Villages
         </button>
@@ -135,13 +183,17 @@ function TreeApp({
             people={visiblePeople}
             relationships={visibleRelationships}
             villages={villages}
+            mode={mode}
+            editableOwnerIds={editableOwnerIds}
             onSelectPerson={setSelectedPersonId}
+            onQuickAdd={openQuickAdd}
+            onRename={setRenamePersonId}
             highlightedPersonIds={highlightedPersonIds}
             highlightedEdgeKeys={highlightedEdgeKeys}
           />
         )}
 
-        {people.length > 0 && (
+        {mode === "edit" && people.length > 0 && (
           <button
             className="fab-add"
             onClick={() =>
@@ -161,12 +213,14 @@ function TreeApp({
           personId={selectedPersonId}
           villages={villages}
           selfId={selfId}
+          canEdit={canEditSelected}
           onSetSelf={setSelf}
           onSelectPerson={(id) => {
             setPathResult(null);
             setSelectedPersonId(id);
           }}
           onAddRelative={(id) => setAddFlowAnchorId(id)}
+          onRename={setRenamePersonId}
           onClose={() => {
             setSelectedPersonId(null);
             setPathResult(null);
@@ -179,9 +233,25 @@ function TreeApp({
         <AddRelativeFlow
           anchorPerson={anchorPerson}
           villages={villages}
-          onClose={() => setAddFlowAnchorId(null)}
+          preset={addFlowPreset ?? undefined}
+          onClose={() => {
+            setAddFlowAnchorId(null);
+            setAddFlowPreset(null);
+          }}
           onCreated={async () => {
             setAddFlowAnchorId(null);
+            setAddFlowPreset(null);
+            await refresh();
+          }}
+        />
+      )}
+
+      {renamePerson && (
+        <RenameModal
+          person={renamePerson}
+          onClose={() => setRenamePersonId(null)}
+          onRenamed={async () => {
+            setRenamePersonId(null);
             await refresh();
           }}
         />

@@ -4,31 +4,43 @@ import type { AttachRelationType, Gender, Person, PersonSummary, Village } from 
 
 const PALETTE = ["#2f81f7", "#e0763a", "#3fb950", "#a371f7", "#db61a2", "#d29922", "#39c5cf"];
 
+const RELATION_LABELS: Record<AttachRelationType, string> = {
+  spouse: "Spouse",
+  child: "Child",
+  parent: "Parent",
+  sibling: "Sibling",
+};
+
 interface Props {
   anchorPerson: Person;
   villages: Village[];
+  preset?: { relationType: AttachRelationType; gender: Gender };
   onClose: () => void;
   onCreated: (village?: Village) => void;
 }
 
 type Step = "relation" | "details" | "consanguineous" | "location" | "duplicates" | "confirm";
 
-export function AddRelativeFlow({ anchorPerson, villages, onClose, onCreated }: Props) {
-  const [step, setStep] = useState<Step>("relation");
-  const [relationType, setRelationType] = useState<AttachRelationType | null>(null);
+export function AddRelativeFlow({ anchorPerson, villages, preset, onClose, onCreated }: Props) {
+  const [step, setStep] = useState<Step>(preset ? "details" : "relation");
+  const [relationType, setRelationType] = useState<AttachRelationType | null>(preset?.relationType ?? null);
   const [name, setName] = useState("");
-  const [gender, setGender] = useState<Gender>("female");
+  const [gender, setGender] = useState<Gender>(preset?.gender ?? "female");
   const [isDeceased, setIsDeceased] = useState(false);
+  const [caste, setCaste] = useState("");
+  const [subcaste, setSubcaste] = useState("");
+  const [birthYear, setBirthYear] = useState("");
   const [isConsanguineous, setIsConsanguineous] = useState(false);
-  const [nativeVillageName, setNativeVillageName] = useState("");
-  const [hasMoved, setHasMoved] = useState(true);
+  const [villageName, setVillageName] = useState("");
+  const [migrated, setMigrated] = useState(false);
+  const [currentPlaceName, setCurrentPlaceName] = useState("");
+  const [sameAsVillage, setSameAsVillage] = useState(true);
   const [duplicates, setDuplicates] = useState<PersonSummary[]>([]);
   const [linkExisting, setLinkExisting] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const anchorVillageName = villages.find((v) => v.id === anchorPerson.currentVillageId)?.name ?? "";
-  const isWomanMarryingIn = relationType === "spouse" && gender === "female";
 
   async function resolveVillage(nameInput: string): Promise<Village> {
     const trimmed = nameInput.trim();
@@ -62,25 +74,27 @@ export function AddRelativeFlow({ anchorPerson, villages, onClose, onCreated }: 
         return;
       }
 
-      let village: Village | undefined;
-      const villageNameToUse = nativeVillageName.trim() || anchorVillageName;
-      if (villageNameToUse) village = await resolveVillage(villageNameToUse);
+      const nativeVillageNameToUse = villageName.trim() || anchorVillageName;
+      const nativeVillage = nativeVillageNameToUse ? await resolveVillage(nativeVillageNameToUse) : undefined;
 
-      const currentVillageId =
-        relationType === "spouse" && gender === "female" && hasMoved
-          ? anchorPerson.currentVillageId
-          : village?.id;
+      let currentVillage: Village | undefined = nativeVillage;
+      if (migrated && !sameAsVillage && currentPlaceName.trim()) {
+        currentVillage = await resolveVillage(currentPlaceName);
+      }
 
       await api.people.create({
         name,
         gender,
         isDeceased,
-        nativeVillageId: village?.id,
-        currentVillageId: currentVillageId ?? village?.id,
+        caste: caste.trim() || undefined,
+        subcaste: subcaste.trim() || undefined,
+        dob: birthYear.trim() || undefined,
+        nativeVillageId: nativeVillage?.id,
+        currentVillageId: currentVillage?.id ?? nativeVillage?.id,
         attachTo: { personId: anchorPerson.id, relationType: relationType! },
         isConsanguineous,
       });
-      onCreated(village);
+      onCreated(nativeVillage);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -108,7 +122,7 @@ export function AddRelativeFlow({ anchorPerson, villages, onClose, onCreated }: 
                     setStep("details");
                   }}
                 >
-                  {rt === "spouse" ? "Spouse" : rt === "child" ? "Child" : rt === "parent" ? "Parent" : "Sibling"}
+                  {RELATION_LABELS[rt]}
                 </button>
               ))}
             </div>
@@ -117,25 +131,52 @@ export function AddRelativeFlow({ anchorPerson, villages, onClose, onCreated }: 
 
         {step === "details" && (
           <>
-            <h3>Basic details</h3>
+            <h3>
+              {preset
+                ? `Add ${gender === "male" ? "male" : gender === "female" ? "female" : ""} ${relationType} of ${anchorPerson.name}`
+                : "Basic details"}
+            </h3>
             <label>
               Name
               <input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             </label>
+            {!preset && (
+              <label>
+                Gender
+                <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+            )}
             <label>
-              Gender
-              <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}>
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-                <option value="other">Other</option>
-              </select>
+              Caste
+              <input value={caste} onChange={(e) => setCaste(e.target.value)} />
+            </label>
+            <label>
+              Subcaste
+              <input value={subcaste} onChange={(e) => setSubcaste(e.target.value)} />
+            </label>
+            <label>
+              Year of birth
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="e.g. 1985"
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value)}
+              />
             </label>
             <label className="checkbox-row">
               <input type="checkbox" checked={isDeceased} onChange={(e) => setIsDeceased(e.target.checked)} />
               Deceased
             </label>
             <div className="step-actions">
-              <button disabled={!name.trim()} onClick={() => setStep(relationType === "spouse" ? "consanguineous" : "location")}>
+              <button
+                disabled={!name.trim()}
+                onClick={() => setStep(relationType === "spouse" ? "consanguineous" : "location")}
+              >
                 Next
               </button>
             </div>
@@ -168,23 +209,32 @@ export function AddRelativeFlow({ anchorPerson, villages, onClose, onCreated }: 
 
         {step === "location" && (
           <>
-            {isWomanMarryingIn ? (
+            <h3>Which village is {name || "this person"} from?</h3>
+            <input
+              value={villageName}
+              onChange={(e) => setVillageName(e.target.value)}
+              placeholder={anchorVillageName}
+            />
+            <label className="checkbox-row">
+              <input type="checkbox" checked={migrated} onChange={(e) => setMigrated(e.target.checked)} />
+              Has {name || "this person"} moved elsewhere?
+            </label>
+            {migrated && (
               <>
-                <h3>Which village is she from originally?</h3>
-                <input value={nativeVillageName} onChange={(e) => setNativeVillageName(e.target.value)} />
                 <label className="checkbox-row">
-                  <input type="checkbox" checked={hasMoved} onChange={(e) => setHasMoved(e.target.checked)} />
-                  Has she moved to {anchorVillageName || "his village"} after marriage?
+                  <input
+                    type="checkbox"
+                    checked={sameAsVillage}
+                    onChange={(e) => setSameAsVillage(e.target.checked)}
+                  />
+                  Same as village
                 </label>
-              </>
-            ) : (
-              <>
-                <h3>Which village is {gender === "male" ? "he" : "she"} from?</h3>
-                <input
-                  value={nativeVillageName || anchorVillageName}
-                  onChange={(e) => setNativeVillageName(e.target.value)}
-                  placeholder={anchorVillageName}
-                />
+                {!sameAsVillage && (
+                  <label>
+                    Current place
+                    <input value={currentPlaceName} onChange={(e) => setCurrentPlaceName(e.target.value)} />
+                  </label>
+                )}
               </>
             )}
             <div className="step-actions">

@@ -12,6 +12,7 @@ import type { Person, Relationship, Village } from "../types";
 import { computeLayout } from "../layout";
 import { PersonNode, type PersonNodeData } from "./PersonNode";
 import { SpouseEdge, type SpouseEdgeData } from "./SpouseEdge";
+import type { QuickRelation } from "../quickRelations";
 
 const nodeTypes = { person: PersonNode };
 const edgeTypes = { spouse: SpouseEdge };
@@ -20,7 +21,11 @@ interface Props {
   people: Person[];
   relationships: Relationship[];
   villages: Village[];
+  mode: "view" | "edit";
+  editableOwnerIds: Set<string> | "all";
   onSelectPerson: (id: string) => void;
+  onQuickAdd: (personId: string, qr: QuickRelation) => void;
+  onRename: (personId: string) => void;
   highlightedPersonIds?: Set<string>;
   highlightedEdgeKeys?: Set<string>;
 }
@@ -29,7 +34,11 @@ export function TreeCanvas({
   people,
   relationships,
   villages,
+  mode,
+  editableOwnerIds,
   onSelectPerson,
+  onQuickAdd,
+  onRename,
   highlightedPersonIds,
   highlightedEdgeKeys,
 }: Props) {
@@ -46,6 +55,11 @@ export function TreeCanvas({
         person,
         village: person.currentVillageId ? villageById.get(person.currentVillageId) : undefined,
         highlighted: highlightedPersonIds?.has(person.id),
+        mode,
+        editable: editableOwnerIds === "all" || editableOwnerIds.has(person.ownerId),
+        onSelectPerson,
+        onQuickAdd,
+        onRename,
       },
     }));
 
@@ -80,7 +94,18 @@ export function TreeCanvas({
     });
 
     return { nodes, edges };
-  }, [people, relationships, villageById, highlightedPersonIds, highlightedEdgeKeys]);
+  }, [
+    people,
+    relationships,
+    villageById,
+    highlightedPersonIds,
+    highlightedEdgeKeys,
+    mode,
+    editableOwnerIds,
+    onSelectPerson,
+    onQuickAdd,
+    onRename,
+  ]);
 
   return (
     <ReactFlow
@@ -88,7 +113,6 @@ export function TreeCanvas({
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      onNodeClick={(_e, node) => onSelectPerson(node.id)}
       fitView
       minZoom={0.1}
       maxZoom={2}

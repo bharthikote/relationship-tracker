@@ -95,6 +95,8 @@ model Person {
   dob      String?
   isDeceased Boolean @default(false)
   photoUrl String?
+  caste    String?
+  subcaste String?
 
   ownerId String
   owner   Profile @relation(fields: [ownerId], references: [id], onDelete: Cascade)

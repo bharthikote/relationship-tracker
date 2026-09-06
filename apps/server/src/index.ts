@@ -40,6 +40,8 @@ function toApiPerson(p: DbPerson): Person {
     dob: p.dob ?? undefined,
     isDeceased: p.isDeceased,
     photoUrl: p.photoUrl ?? undefined,
+    caste: p.caste ?? undefined,
+    subcaste: p.subcaste ?? undefined,
     nativeVillageId: p.nativeVillageId ?? undefined,
     currentVillageId: p.currentVillageId ?? undefined,
     locationHistory: (p.locationHistory as unknown as Person["locationHistory"]) ?? [],
@@ -301,6 +303,8 @@ app.post("/api/people", async (req, res) => {
       dob: body.dob,
       isDeceased: !!body.isDeceased,
       photoUrl: body.photoUrl,
+      caste: body.caste,
+      subcaste: body.subcaste,
       nativeVillageId: body.nativeVillageId,
       currentVillageId: body.currentVillageId ?? body.nativeVillageId,
       locationHistory: body.locationHistory ?? [],
@@ -326,6 +330,37 @@ app.post("/api/people", async (req, res) => {
   }
 
   res.status(201).json({ person: toApiPerson(newPerson), relationship });
+});
+
+app.patch("/api/people/:id", async (req, res) => {
+  const person = await prisma.person.findUnique({ where: { id: req.params.id } });
+  if (!person) return res.status(404).json({ error: "not found" });
+  if (!(await canEditOwner(req.profile!, person.ownerId))) {
+    return res.status(403).json({ error: "you don't have permission to edit this person" });
+  }
+
+  const body = req.body ?? {};
+  const editable = [
+    "name",
+    "nameLocal",
+    "dob",
+    "isDeceased",
+    "caste",
+    "subcaste",
+    "nativeVillageId",
+    "currentVillageId",
+  ] as const;
+  const data: Record<string, unknown> = {};
+  for (const key of editable) {
+    if (body[key] !== undefined) data[key] = body[key];
+  }
+  if (Object.keys(data).length === 0) return res.status(400).json({ error: "no editable fields provided" });
+
+  const updated = await prisma.person.update({
+    where: { id: person.id },
+    data: { ...data, lastEditedBy: req.profile!.id },
+  });
+  res.json(toApiPerson(updated));
 });
 
 function relationDirection(
