@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum VillageType {
+  village
+  town
+  city
+}
+
+enum RelationshipType {
+  spouse
+  parent_child
+  sibling
+}
+
+model Village {
+  id     String      @id @default(uuid())
+  name   String
+  type   VillageType @default(village)
+  color  String
+  region String?
+
+  peopleNative  Person[] @relation("NativeVillage")
+  peopleCurrent Person[] @relation("CurrentVillage")
+
+  @@index([name])
+}
+
+model Person {
+  id       String  @id @default(uuid())
+  name     String
+  nameLocal String?
+  gender   Gender
+  dob      String?
+  isDeceased Boolean @default(false)
+  photoUrl String?
+
+  nativeVillageId  String?
+  nativeVillage    Village? @relation("NativeVillage", fields: [nativeVillageId], references: [id])
+  currentVillageId String?
+  currentVillage   Village? @relation("CurrentVillage", fields: [currentVillageId], references: [id])
+
+  // Array of { villageId, fromDate?, event } — see apps/server/src/types.ts LocationEvent
+  locationHistory Json @default("[]")
+
+  addedBy      String?
+  lastEditedBy String?
+  verified     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  relationshipsAsA Relationship[] @relation("PersonA")
+  relationshipsAsB Relationship[] @relation("PersonB")
+
+  @@index([name])
+  @@index([currentVillageId])
+}
+
+model Relationship {
+  id     String            @id @default(uuid())
+  type   RelationshipType
+  personAId String
+  personA   Person @relation("PersonA", fields: [personAId], references: [id], onDelete: Cascade)
+  personBId String
+  personB   Person @relation("PersonB", fields: [personBId], references: [id], onDelete: Cascade)
+
+  marriageDate     String?
+  isConsanguineous Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([personAId])
+  @@index([personBId])
+}

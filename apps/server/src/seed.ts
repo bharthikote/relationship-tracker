@@ -1,96 +1,77 @@
-import { randomUUID } from "node:crypto";
-import { db } from "./db.js";
-import type { Person, Relationship, Village } from "./types.js";
-
-const now = () => new Date().toISOString();
-
-function village(name: string, color: string): Village {
-  return { id: randomUUID(), name, type: "village", color };
-}
-
-function person(
-  name: string,
-  gender: Person["gender"],
-  nativeVillageId: string,
-  currentVillageId: string,
-  opts: Partial<Person> = {}
-): Person {
-  return {
-    id: randomUUID(),
-    name,
-    gender,
-    isDeceased: false,
-    nativeVillageId,
-    currentVillageId,
-    locationHistory: [],
-    verified: true,
-    createdAt: now(),
-    updatedAt: now(),
-    ...opts,
-  };
-}
+import { prisma } from "./db.js";
+import type { Gender } from "@prisma/client";
 
 async function seed() {
-  await db.read();
-  if (db.data.people.length > 0) {
+  const existing = await prisma.person.count();
+  if (existing > 0) {
     console.log("DB already has data, skipping seed.");
     return;
   }
 
-  const rampur = village("Rampur", "#2f81f7");
-  const shivgaon = village("Shivgaon", "#e0763a");
-  db.data.villages.push(rampur, shivgaon);
+  const rampur = await prisma.village.create({ data: { name: "Rampur", color: "#2f81f7" } });
+  const shivgaon = await prisma.village.create({ data: { name: "Shivgaon", color: "#e0763a" } });
 
-  const ramesh = person("Ramesh Patil", "male", rampur.id, rampur.id);
-  const sita = person("Sita Patil", "female", shivgaon.id, rampur.id, {
-    locationHistory: [
-      { villageId: shivgaon.id, event: "birth" },
-      { villageId: rampur.id, event: "marriage", fromDate: "2001-02-10" },
+  const person = (name: string, gender: Gender, nativeVillageId: string, currentVillageId: string) =>
+    prisma.person.create({
+      data: { name, gender, nativeVillageId, currentVillageId, verified: true },
+    });
+
+  const ramesh = await person("Ramesh Patil", "male", rampur.id, rampur.id);
+  const sita = await prisma.person.create({
+    data: {
+      name: "Sita Patil",
+      gender: "female",
+      nativeVillageId: shivgaon.id,
+      currentVillageId: rampur.id,
+      verified: true,
+      locationHistory: [
+        { villageId: shivgaon.id, event: "birth" },
+        { villageId: rampur.id, event: "marriage", fromDate: "2001-02-10" },
+      ],
+    },
+  });
+  const anil = await person("Anil Patil", "male", rampur.id, rampur.id);
+  const deepa = await person("Deepa Patil", "female", rampur.id, rampur.id);
+  const kiran = await person("Kiran Jadhav", "male", shivgaon.id, shivgaon.id);
+  const meena = await prisma.person.create({
+    data: {
+      name: "Meena Jadhav",
+      gender: "female",
+      nativeVillageId: rampur.id,
+      currentVillageId: shivgaon.id,
+      verified: true,
+      locationHistory: [
+        { villageId: rampur.id, event: "birth" },
+        { villageId: shivgaon.id, event: "marriage", fromDate: "2020-11-20" },
+      ],
+    },
+  });
+
+  await prisma.relationship.createMany({
+    data: [
+      { type: "spouse", personAId: ramesh.id, personBId: sita.id, marriageDate: "2001-02-10" },
+      { type: "parent_child", personAId: ramesh.id, personBId: anil.id },
+      { type: "parent_child", personAId: sita.id, personBId: anil.id },
+      { type: "parent_child", personAId: ramesh.id, personBId: meena.id },
+      { type: "parent_child", personAId: sita.id, personBId: meena.id },
+      { type: "sibling", personAId: anil.id, personBId: meena.id },
+      {
+        type: "spouse",
+        personAId: kiran.id,
+        personBId: meena.id,
+        marriageDate: "2020-11-20",
+        isConsanguineous: false,
+      },
+      { type: "parent_child", personAId: anil.id, personBId: deepa.id },
     ],
   });
-  const anil = person("Anil Patil", "male", rampur.id, rampur.id);
-  const deepa = person("Deepa Patil", "female", rampur.id, rampur.id);
-  const kiran = person("Kiran Jadhav", "male", shivgaon.id, shivgaon.id);
-  const meena = person("Meena Jadhav", "female", rampur.id, shivgaon.id, {
-    locationHistory: [
-      { villageId: rampur.id, event: "birth" },
-      { villageId: shivgaon.id, event: "marriage", fromDate: "2020-11-20" },
-    ],
-  });
 
-  db.data.people.push(ramesh, sita, anil, deepa, kiran, meena);
-
-  const rel = (
-    type: Relationship["type"],
-    a: Person,
-    b: Person,
-    extra: Partial<Relationship> = {}
-  ): Relationship => ({
-    id: randomUUID(),
-    type,
-    personAId: a.id,
-    personBId: b.id,
-    createdAt: now(),
-    ...extra,
-  });
-
-  db.data.relationships.push(
-    rel("spouse", ramesh, sita, { marriageDate: "2001-02-10" }),
-    rel("parent-child", ramesh, anil),
-    rel("parent-child", sita, anil),
-    rel("parent-child", ramesh, meena),
-    rel("parent-child", sita, meena),
-    rel("sibling", anil, meena),
-    rel("spouse", kiran, meena, {
-      marriageDate: "2020-11-20",
-      isConsanguineous: false,
-    }),
-    rel("parent-child", anil, deepa)
-  );
-  // anil's spouse omitted for brevity; deepa attached as anil's child directly for demo purposes
-
-  await db.write();
   console.log("Seeded sample village tree.");
 }
 
-seed();
+seed()
+  .catch((e) => {
+    console.error(e);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

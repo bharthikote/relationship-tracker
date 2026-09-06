@@ -13,9 +13,11 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@prisma/client": "7.10.0",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "lowdb": "^7.0.1"
+    "prisma": "7.10.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -25,6 +27,8 @@
     "typescript": "^7.0.2"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true
   }
 }
