@@ -74,7 +74,11 @@ export function computeLayout(people: Person[], relationships: Relationship[]): 
   const sortedGens = [...byGen.keys()].sort((a, b) => a - b);
 
   for (const g of sortedGens) {
-    const ids = byGen.get(g)!;
+    // Elder siblings (lower birthOrder) end up left, younger right; people without a birthOrder
+    // (e.g. cousins from a different parent sharing this generation) stay in their original order.
+    const ids = [...byGen.get(g)!].sort(
+      (a, b) => (byId.get(a)?.birthOrder ?? 0) - (byId.get(b)?.birthOrder ?? 0)
+    );
     const placed = new Set<string>();
     const ordered: string[] = [];
     for (const id of ids) {

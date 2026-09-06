@@ -22,7 +22,7 @@ interface Props {
   onCreated: (village?: Village) => void;
 }
 
-type Step = "relation" | "details" | "consanguineous" | "location" | "duplicates" | "confirm";
+type Step = "relation" | "details" | "consanguineous" | "siblingOrder" | "location" | "duplicates" | "confirm";
 
 export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, preset, onClose, onCreated }: Props) {
   const [step, setStep] = useState<Step>(preset ? "details" : "relation");
@@ -30,8 +30,13 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender>(preset?.gender ?? "female");
   const [isDeceased, setIsDeceased] = useState(false);
-  const [caste, setCaste] = useState("");
-  const [subcaste, setSubcaste] = useState("");
+  const [caste, setCaste] = useState(
+    preset?.relationType === "sibling" ? castes.find((c) => c.id === anchorPerson.casteId)?.name ?? "" : ""
+  );
+  const [subcaste, setSubcaste] = useState(
+    preset?.relationType === "sibling" ? subcastes.find((s) => s.id === anchorPerson.subcasteId)?.name ?? "" : ""
+  );
+  const [isElder, setIsElder] = useState<boolean | null>(null);
   const [birthYear, setBirthYear] = useState("");
   const [isConsanguineous, setIsConsanguineous] = useState(false);
   const [villageName, setVillageName] = useState("");
@@ -101,6 +106,10 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
 
       const casteRow = caste.trim() ? await resolveCaste(caste) : undefined;
       const subcasteRow = subcaste.trim() ? await resolveSubcaste(subcaste) : undefined;
+      const birthOrder =
+        relationType === "sibling" && isElder !== null
+          ? (anchorPerson.birthOrder ?? 0) + (isElder ? -1 : 1)
+          : undefined;
 
       await api.people.create({
         name,
@@ -108,6 +117,7 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
         isDeceased,
         casteId: casteRow?.id,
         subcasteId: subcasteRow?.id,
+        birthOrder,
         dob: birthYear.trim() || undefined,
         nativeVillageId: nativeVillage?.id,
         currentVillageId: currentVillage?.id ?? nativeVillage?.id,
@@ -139,6 +149,10 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
                   className="big-choice"
                   onClick={() => {
                     setRelationType(rt);
+                    if (rt === "sibling") {
+                      setCaste(castes.find((c) => c.id === anchorPerson.casteId)?.name ?? "");
+                      setSubcaste(subcastes.find((s) => s.id === anchorPerson.subcasteId)?.name ?? "");
+                    }
                     setStep("details");
                   }}
                 >
@@ -199,9 +213,43 @@ export function AddRelativeFlow({ anchorPerson, villages, castes, subcastes, pre
             <div className="step-actions">
               <button
                 disabled={!name.trim()}
-                onClick={() => setStep(relationType === "spouse" ? "consanguineous" : "location")}
+                onClick={() =>
+                  setStep(
+                    relationType === "spouse"
+                      ? "consanguineous"
+                      : relationType === "sibling"
+                        ? "siblingOrder"
+                        : "location"
+                  )
+                }
               >
                 Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === "siblingOrder" && (
+          <>
+            <h3>
+              Is {name || "this person"} older or younger than {anchorPerson.name}?
+            </h3>
+            <div className="step-actions">
+              <button
+                onClick={() => {
+                  setIsElder(true);
+                  setStep("location");
+                }}
+              >
+                Older
+              </button>
+              <button
+                onClick={() => {
+                  setIsElder(false);
+                  setStep("location");
+                }}
+              >
+                Younger
               </button>
             </div>
           </>

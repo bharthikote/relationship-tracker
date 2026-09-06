@@ -42,6 +42,7 @@ function toApiPerson(p: DbPerson): Person {
     photoUrl: p.photoUrl ?? undefined,
     casteId: p.casteId ?? undefined,
     subcasteId: p.subcasteId ?? undefined,
+    birthOrder: p.birthOrder ?? undefined,
     nativeVillageId: p.nativeVillageId ?? undefined,
     currentVillageId: p.currentVillageId ?? undefined,
     locationHistory: (p.locationHistory as unknown as Person["locationHistory"]) ?? [],
@@ -331,6 +332,7 @@ app.post("/api/people", async (req, res) => {
       photoUrl: body.photoUrl,
       casteId: body.casteId,
       subcasteId: body.subcasteId,
+      birthOrder: body.birthOrder,
       nativeVillageId: body.nativeVillageId,
       currentVillageId: body.currentVillageId ?? body.nativeVillageId,
       locationHistory: body.locationHistory ?? [],
@@ -373,6 +375,7 @@ app.patch("/api/people/:id", async (req, res) => {
     "isDeceased",
     "casteId",
     "subcasteId",
+    "birthOrder",
     "nativeVillageId",
     "currentVillageId",
   ] as const;

@@ -705,7 +705,13 @@ select {
   z-index: 1;
 }
 .person-node-wrap:has(.quick-menu) {
-  z-index: 50;
+  z-index: 1000;
+}
+/* React Flow gives every node its own stacking context (.react-flow__node); without bumping
+   that wrapper too, a neighboring node can still paint over our menu regardless of the inner
+   wrapper's z-index. */
+.react-flow__node:has(.quick-menu) {
+  z-index: 1000 !important;
 }
 .quick-menu {
   position: absolute;
@@ -719,7 +725,7 @@ select {
   box-shadow: var(--shadow);
   padding: 6px;
   width: 190px;
-  z-index: 50;
+  z-index: 1000;
 }
 .quick-menu button {
   display: block;
@@ -752,6 +758,14 @@ select {
   border-radius: 0 !important;
   padding-top: 8px !important;
   color: var(--accent);
+}
+
+/* ---- Person node connection points (pedigree-style dot at top/bottom edge) ---- */
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border: 2px solid var(--panel-bg);
 }
 
 /* ---- React Flow controls (zoom/fit-view/fullscreen) — dark theme, blue icons ---- */

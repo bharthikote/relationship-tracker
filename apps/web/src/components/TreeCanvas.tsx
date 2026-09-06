@@ -66,6 +66,7 @@ export function TreeCanvas({
   highlightedEdgeKeys,
 }: Props) {
   const villageById = useMemo(() => new Map(villages.map((v) => [v.id, v])), [villages]);
+  const personById = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
 
   const { nodes, edges } = useMemo(() => {
     const layout = computeLayout(people, relationships);
@@ -90,19 +91,31 @@ export function TreeCanvas({
       const key = `${r.personAId}-${r.personBId}`;
       const highlighted = highlightedEdgeKeys?.has(key) || highlightedEdgeKeys?.has(`${r.personBId}-${r.personAId}`);
       if (r.type === "spouse") {
+        // personA sits left (right handle), personB sits right (left handle).
         return {
           id: r.id,
           source: r.personAId,
+          sourceHandle: "right",
           target: r.personBId,
+          targetHandle: "left",
           type: "spouse",
           data: { isConsanguineous: r.isConsanguineous, highlighted },
         };
       }
       if (r.type === "sibling") {
+        // Elder sits left (right handle) connecting to younger's left handle; falls back to
+        // personA/personB order when birth order isn't set for one or both.
+        const a = personById.get(r.personAId);
+        const b = personById.get(r.personBId);
+        const bIsOlder =
+          a?.birthOrder !== undefined && b?.birthOrder !== undefined && b.birthOrder < a.birthOrder;
+        const [elderId, youngerId] = bIsOlder ? [r.personBId, r.personAId] : [r.personAId, r.personBId];
         return {
           id: r.id,
-          source: r.personAId,
-          target: r.personBId,
+          source: elderId,
+          sourceHandle: "right",
+          target: youngerId,
+          targetHandle: "left",
           type: "straight",
           style: { stroke: highlighted ? "#ffd23f" : "#aaa", strokeDasharray: "4 3" },
         };
@@ -110,7 +123,9 @@ export function TreeCanvas({
       return {
         id: r.id,
         source: r.personAId,
+        sourceHandle: "bottom",
         target: r.personBId,
+        targetHandle: "top",
         type: "smoothstep",
         style: { stroke: highlighted ? "#ffd23f" : "#555", strokeWidth: highlighted ? 3 : 1.5 },
       };
@@ -121,6 +136,7 @@ export function TreeCanvas({
     people,
     relationships,
     villageById,
+    personById,
     highlightedPersonIds,
     highlightedEdgeKeys,
     mode,

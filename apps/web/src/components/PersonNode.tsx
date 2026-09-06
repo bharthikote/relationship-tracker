@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 import type { Person, Village } from "../types";
 import { QUICK_RELATION_GRID, QUICK_RELATION_LABELS, type QuickRelation } from "../quickRelations";
@@ -15,10 +15,23 @@ export interface PersonNodeData {
   [key: string]: unknown;
 }
 
+const SHAPE_SIZE = 52;
+
 export function PersonNode({ data }: { data: PersonNodeData }) {
   const { person, village, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
   const [open, setOpen] = useState(false);
   const interactive = mode === "edit" && editable;
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+    };
+  }, [open]);
 
   const isFemale = person.gender === "female";
   const shapeStyle: React.CSSProperties = isFemale
@@ -27,50 +40,61 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
       ? { borderRadius: 4 }
       : { borderRadius: 4, transform: "rotate(45deg)" };
 
-  function handleClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (interactive) setOpen((o) => !o);
-    else onSelectPerson(person.id);
+  function handleClick() {
+    setOpen(false);
+    onSelectPerson(person.id);
+  }
+
+  function handleContextMenu(e: React.MouseEvent) {
+    if (!interactive) return;
+    e.preventDefault();
+    setOpen((o) => !o);
   }
 
   return (
     <div
       className="person-node-wrap"
-      onMouseEnter={() => interactive && setOpen(true)}
-      onMouseLeave={() => interactive && setOpen(false)}
       style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: 96 }}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <div onClick={handleClick} style={{ cursor: "pointer" }}>
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            background: village?.color ?? "#8b8b8b",
-            border: highlighted ? "3px solid #ffd23f" : "2px solid rgba(0,0,0,0.35)",
-            opacity: person.isDeceased ? 0.55 : 1,
-            boxShadow: highlighted ? "0 0 0 4px rgba(255,210,63,0.35)" : "none",
-            ...shapeStyle,
-          }}
-          title={person.name}
-        />
-        <div
-          style={{
-            marginTop: 6,
-            fontSize: 12,
-            textAlign: "center",
-            lineHeight: 1.2,
-            maxWidth: 96,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {person.name}
-        </div>
-        {!person.verified && <div style={{ fontSize: 10, color: "#c07800" }}>unverified</div>}
+      {/* Parent-child: child's top connects to parent's bottom. */}
+      <Handle type="target" position={Position.Top} id="top" />
+      {/* Siblings: elder's right connects to younger's left. Spouses: personA's right to personB's left. */}
+      <Handle type="target" position={Position.Left} id="left" />
+
+      <div
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        style={{
+          width: SHAPE_SIZE,
+          background: village?.color ?? "#8b8b8b",
+          border: highlighted ? "3px solid #ffd23f" : "2px solid rgba(0,0,0,0.35)",
+          opacity: person.isDeceased ? 0.55 : 1,
+          boxShadow: highlighted ? "0 0 0 4px rgba(255,210,63,0.35)" : "none",
+          height: SHAPE_SIZE,
+          cursor: "pointer",
+          ...shapeStyle,
+        }}
+        title={interactive ? `${person.name} (right-click for options)` : person.name}
+      />
+
+      <Handle type="source" position={Position.Bottom} id="bottom" />
+      <Handle type="source" position={Position.Right} id="right" />
+
+      <div
+        style={{
+          marginTop: 6,
+          fontSize: 12,
+          textAlign: "center",
+          lineHeight: 1.2,
+          maxWidth: 96,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {person.name}
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      {!person.verified && <div style={{ fontSize: 10, color: "#c07800" }}>unverified</div>}
 
       {interactive && open && (
         <div className="quick-menu" onClick={(e) => e.stopPropagation()}>

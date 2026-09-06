@@ -115,6 +115,10 @@ model Person {
   dob      String?
   isDeceased Boolean @default(false)
   photoUrl String?
+  // Relative birth order among siblings (lower = older). Set when a sibling is added via the
+  // elder/younger prompt; used purely for left-to-right canvas layout, not stored as an absolute
+  // birth rank across the whole tree.
+  birthOrder Int?
 
   ownerId String
   owner   Profile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
