@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ReactFlow,
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   type Node,
   type Edge,
@@ -13,6 +14,28 @@ import { computeLayout } from "../layout";
 import { PersonNode, type PersonNodeData } from "./PersonNode";
 import { SpouseEdge, type SpouseEdgeData } from "./SpouseEdge";
 import type { QuickRelation } from "../quickRelations";
+import { EnterFullscreenIcon, ExitFullscreenIcon } from "../icons";
+
+function FullscreenControlButton() {
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  function toggle() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }
+
+  return (
+    <ControlButton onClick={toggle} title={isFullscreen ? "Exit full screen" : "Full screen"}>
+      {isFullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
+    </ControlButton>
+  );
+}
 
 const nodeTypes = { person: PersonNode };
 const edgeTypes = { spouse: SpouseEdge };
@@ -118,7 +141,9 @@ export function TreeCanvas({
       maxZoom={2}
     >
       <Background />
-      <Controls />
+      <Controls>
+        <FullscreenControlButton />
+      </Controls>
       <MiniMap
         nodeColor={(n) => {
           const data = n.data as PersonNodeData;

@@ -170,6 +170,16 @@ select {
 }
 .search-bar input {
   width: 100%;
+  background: transparent;
+  border-color: transparent;
+}
+.search-bar input:hover {
+  border-color: var(--border);
+}
+.search-bar input:focus {
+  background: var(--panel-bg);
+  border-color: var(--accent);
+  outline: none;
 }
 .search-results {
   position: absolute;
@@ -727,4 +737,32 @@ select {
   border-radius: 0 !important;
   padding-top: 8px !important;
   color: var(--accent);
+}
+
+/* ---- React Flow controls (zoom/fit-view/fullscreen) — dark theme, blue icons ---- */
+.react-flow {
+  --xy-controls-button-background-color: var(--panel-bg);
+  --xy-controls-button-background-color-hover: rgba(47, 129, 247, 0.16);
+  --xy-controls-button-color: var(--accent);
+  --xy-controls-button-color-hover: var(--accent);
+  --xy-controls-button-border-color: var(--border);
+}
+.react-flow__controls {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.react-flow__controls-button {
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--accent);
+  fill: var(--accent);
+}
+.react-flow__controls-button:hover {
+  background: rgba(47, 129, 247, 0.16);
+}
+.react-flow__controls-button svg {
+  fill: var(--accent);
 }
