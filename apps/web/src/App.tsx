@@ -340,6 +340,7 @@ function TreeApp({
           onClose={() => {
             setAccountOpen(false);
             refreshConnections();
+            refresh();
           }}
         />
       )}
