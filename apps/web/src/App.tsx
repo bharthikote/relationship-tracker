@@ -5,6 +5,7 @@ import type {
   Caste,
   ColorByMode,
   Gender,
+  InfoField,
   PathResult,
   Person,
   Profile,
@@ -76,6 +77,10 @@ function TreeApp({
   const [colorBy, setColorByState] = useState<ColorByMode>(
     () => (localStorage.getItem(`colorBy:${profile.id}`) as ColorByMode | null) ?? "none"
   );
+  const [infoFields, setInfoFieldsState] = useState<Set<InfoField>>(() => {
+    const saved = localStorage.getItem(`infoFields:${profile.id}`);
+    return new Set((saved ? saved.split(",") : []).filter(Boolean) as InfoField[]);
+  });
   const [accountOpen, setAccountOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit">("edit");
   const [connectedOwnerIds, setConnectedOwnerIds] = useState<Set<string>>(new Set());
@@ -122,6 +127,11 @@ function TreeApp({
   function setColorBy(mode: ColorByMode) {
     setColorByState(mode);
     localStorage.setItem(`colorBy:${profile.id}`, mode);
+  }
+
+  function setInfoFields(fields: Set<InfoField>) {
+    setInfoFieldsState(fields);
+    localStorage.setItem(`infoFields:${profile.id}`, [...fields].join(","));
   }
 
   async function addSelf() {
@@ -209,7 +219,12 @@ function TreeApp({
 
         {settingsOpen && (
           <div className="legend-drawer">
-            <SettingsPanel colorBy={colorBy} onChange={setColorBy} />
+            <SettingsPanel
+              colorBy={colorBy}
+              onColorByChange={setColorBy}
+              infoFields={infoFields}
+              onInfoFieldsChange={setInfoFields}
+            />
           </div>
         )}
 
@@ -226,6 +241,7 @@ function TreeApp({
             castes={castes}
             subcastes={subcastes}
             colorBy={colorBy}
+            infoFields={infoFields}
             mode={mode}
             editableOwnerIds={editableOwnerIds}
             onSelectPerson={setSelectedPersonId}

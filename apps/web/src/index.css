@@ -156,6 +156,9 @@ select {
   font-size: 13px;
   color: var(--text-muted);
 }
+.settings-section-title-spaced {
+  margin-top: 14px;
+}
 .settings-row {
   display: flex;
   align-items: center;
@@ -755,7 +758,7 @@ select {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 28px;
+  margin-top: 42px;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 10px;

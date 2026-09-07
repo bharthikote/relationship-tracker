@@ -9,8 +9,8 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { Caste, ColorByMode, Person, Relationship, Subcaste, Village } from "../types";
-import { computeLayout } from "../layout";
+import type { Caste, ColorByMode, InfoField, Person, Relationship, Subcaste, Village } from "../types";
+import { computeLayout, birthYear } from "../layout";
 import { PersonNode, SHAPE_SIZE, type PersonNodeData } from "./PersonNode";
 import { SpouseEdge, type SpouseEdgeData } from "./SpouseEdge";
 import { JunctionNode } from "./JunctionNode";
@@ -57,6 +57,7 @@ interface Props {
   castes: Caste[];
   subcastes: Subcaste[];
   colorBy: ColorByMode;
+  infoFields: Set<InfoField>;
   mode: "view" | "edit";
   editableOwnerIds: Set<string> | "all";
   onSelectPerson: (id: string) => void;
@@ -73,6 +74,7 @@ export function TreeCanvas({
   castes,
   subcastes,
   colorBy,
+  infoFields,
   mode,
   editableOwnerIds,
   onSelectPerson,
@@ -109,6 +111,35 @@ export function TreeCanvas({
       }
     };
   }, [colorBy, villageById, casteRankById, subcasteRankById]);
+
+  // Optional per-person detail lines shown below their name, controlled by the Settings panel.
+  const infoLinesFor = useMemo(() => {
+    const thisYear = new Date().getFullYear();
+    return (person: Person): string[] => {
+      const lines: string[] = [];
+      if (infoFields.has("age")) {
+        const by = birthYear(person);
+        if (by !== undefined) lines.push(`${thisYear - by}y`);
+      }
+      if (infoFields.has("currentLocation")) {
+        const v = person.currentVillageId ? villageById.get(person.currentVillageId) : undefined;
+        if (v) lines.push(v.name);
+      }
+      if (infoFields.has("nativeLocation")) {
+        const v = person.nativeVillageId ? villageById.get(person.nativeVillageId) : undefined;
+        if (v) lines.push(v.name);
+      }
+      if (infoFields.has("caste")) {
+        const c = person.casteId ? casteById.get(person.casteId) : undefined;
+        if (c) lines.push(c.name);
+      }
+      if (infoFields.has("subcaste")) {
+        const s = person.subcasteId ? subcasteById.get(person.subcasteId) : undefined;
+        if (s) lines.push(s.name);
+      }
+      return lines;
+    };
+  }, [infoFields, villageById, casteById, subcasteById]);
 
   // The set of distinct colors actually in use right now, so the legend only lists entries that
   // are on screen instead of every village/caste/subcaste ever recorded system-wide.
@@ -275,6 +306,7 @@ export function TreeCanvas({
       data: {
         person,
         color: colorFor(person),
+        infoLines: infoLinesFor(person),
         handles: usedHandles.get(person.id) ?? new Set(),
         highlighted: highlightedPersonIds?.has(person.id),
         mode,
@@ -293,6 +325,7 @@ export function TreeCanvas({
     people,
     relationships,
     colorFor,
+    infoLinesFor,
     highlightedPersonIds,
     highlightedEdgeKeys,
     mode,

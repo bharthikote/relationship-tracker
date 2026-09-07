@@ -6,6 +6,7 @@ import { QUICK_RELATION_GRID, QUICK_RELATION_LABELS, type QuickRelation } from "
 export interface PersonNodeData {
   person: Person;
   color: string;
+  infoLines: string[];
   handles: Set<string>;
   highlighted?: boolean;
   mode: "view" | "edit";
@@ -19,7 +20,8 @@ export interface PersonNodeData {
 export const SHAPE_SIZE = 52;
 
 export function PersonNode({ data }: { data: PersonNodeData }) {
-  const { person, color, handles, highlighted, mode, editable, onSelectPerson, onQuickAdd, onEdit } = data;
+  const { person, color, infoLines, handles, highlighted, mode, editable, onSelectPerson, onQuickAdd, onEdit } =
+    data;
   const [open, setOpen] = useState(false);
   const interactive = mode === "edit" && editable;
   const dotColor = color;
@@ -108,6 +110,7 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
       )}
 
       <div
+        className="person-node-label"
         style={{
           position: "absolute",
           top: "100%",
@@ -115,16 +118,34 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
           transform: "translateX(-50%)",
           marginTop: 6,
           width: 96,
-          fontSize: 12,
           textAlign: "center",
-          lineHeight: 1.2,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
           pointerEvents: "none",
         }}
       >
-        {person.name}
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {person.name}
+        </div>
+        {infoLines.length > 0 && (
+          <div
+            style={{
+              fontSize: 10,
+              fontStyle: "italic",
+              color: "var(--text-muted)",
+              lineHeight: 1.3,
+              marginTop: 2,
+            }}
+          >
+            {infoLines.join(" · ")}
+          </div>
+        )}
       </div>
 
       {interactive && open && (
