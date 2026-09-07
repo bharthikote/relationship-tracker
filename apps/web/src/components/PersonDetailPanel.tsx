@@ -15,6 +15,7 @@ interface Props {
   onRename: (id: string) => void;
   onClose: () => void;
   onPathResult: (result: PathResult | null) => void;
+  onPersonUpdated: () => void;
 }
 
 function nameOf(list: { id: string; name: string }[], id?: string) {
@@ -56,6 +57,7 @@ export function PersonDetailPanel({
   onRename,
   onClose,
   onPathResult,
+  onPersonUpdated,
 }: Props) {
   const [detail, setDetail] = useState<PersonDetail | null>(null);
   const [pathCaption, setPathCaption] = useState<string | null>(null);
@@ -84,6 +86,13 @@ export function PersonDetailPanel({
   const markVerified = async () => {
     const updated = await api.people.update(detail.id, { verified: true });
     setDetail({ ...detail, verified: updated.verified });
+    onPersonUpdated();
+  };
+
+  const changeGender = async (gender: string) => {
+    const updated = await api.people.update(detail.id, { gender });
+    setDetail({ ...detail, gender: updated.gender });
+    onPersonUpdated();
   };
 
   return (
@@ -94,7 +103,19 @@ export function PersonDetailPanel({
       <h2>
         {detail.name} {detail.isDeceased ? "(deceased)" : ""}
       </h2>
-      <div className="gender-badge">{detail.gender}</div>
+      {canEdit ? (
+        <select
+          className="gender-badge gender-select"
+          value={detail.gender}
+          onChange={(e) => changeGender(e.target.value)}
+        >
+          <option value="male">male</option>
+          <option value="female">female</option>
+          <option value="other">other</option>
+        </select>
+      ) : (
+        <div className="gender-badge">{detail.gender}</div>
+      )}
       {!detail.verified && <div className="unverified-tag">Not yet verified</div>}
 
       <div className="location-block">

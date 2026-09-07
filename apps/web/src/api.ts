@@ -104,6 +104,7 @@ export const api = {
       data: Partial<{
         name: string;
         nameLocal: string;
+        gender: string;
         dob: string;
         isDeceased: boolean;
         casteId: string;

@@ -243,6 +243,12 @@ select {
   margin-bottom: 8px;
 }
 
+.gender-select {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .unverified-tag {
   font-size: 12px;
   color: #c07800;

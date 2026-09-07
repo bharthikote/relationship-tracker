@@ -261,6 +261,7 @@ function TreeApp({
             setPathResult(null);
           }}
           onPathResult={setPathResult}
+          onPersonUpdated={refresh}
         />
       )}
 

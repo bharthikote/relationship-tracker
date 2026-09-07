@@ -369,6 +369,7 @@ app.patch("/api/people/:id", async (req, res) => {
   const editable = [
     "name",
     "nameLocal",
+    "gender",
     "dob",
     "isDeceased",
     "casteId",
