@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api";
 import type { Caste, Person, Subcaste, Village } from "../types";
 import { AutosuggestInput } from "./AutosuggestInput";
-import { PALETTE } from "../palette";
+import { colorForId } from "../palette";
 
 interface Props {
   person: Person;
@@ -34,7 +34,7 @@ export function EditPersonModal({ person, villages, castes, subcastes, onClose, 
     if (!trimmed) return undefined;
     const existing = villages.find((v) => v.name.toLowerCase() === trimmed.toLowerCase());
     if (existing) return existing.id;
-    const color = PALETTE[villages.length % PALETTE.length];
+    const color = colorForId(trimmed.toLowerCase());
     const created = await api.villages.create({ name: trimmed, color });
     return created.id;
   }
