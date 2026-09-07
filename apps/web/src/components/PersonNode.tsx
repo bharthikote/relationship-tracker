@@ -6,6 +6,7 @@ import { QUICK_RELATION_GRID, QUICK_RELATION_LABELS, type QuickRelation } from "
 export interface PersonNodeData {
   person: Person;
   color: string;
+  handles: Set<string>;
   highlighted?: boolean;
   mode: "view" | "edit";
   editable: boolean;
@@ -18,7 +19,7 @@ export interface PersonNodeData {
 export const SHAPE_SIZE = 52;
 
 export function PersonNode({ data }: { data: PersonNodeData }) {
-  const { person, color, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
+  const { person, color, handles, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
   const [open, setOpen] = useState(false);
   const interactive = mode === "edit" && editable;
   const dotColor = color;
@@ -55,19 +56,23 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
   return (
     <div className="person-node-wrap" style={{ position: "relative", width: SHAPE_SIZE, height: SHAPE_SIZE }}>
       {/* Parent-child: child's top connects to parent's bottom. */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="top"
-        style={{ background: dotColor, borderColor: dotColor }}
-      />
+      {handles.has("top") && (
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="top"
+          style={{ background: dotColor, borderColor: dotColor }}
+        />
+      )}
       {/* Siblings: elder's right connects to younger's left. Spouses: personA's right to personB's left. */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left"
-        style={{ background: dotColor, borderColor: dotColor }}
-      />
+      {handles.has("left") && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="left"
+          style={{ background: dotColor, borderColor: dotColor }}
+        />
+      )}
 
       <div
         onClick={handleClick}
@@ -85,18 +90,22 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
         title={interactive ? `${person.name} (right-click for options)` : person.name}
       />
 
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        style={{ background: dotColor, borderColor: dotColor }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right"
-        style={{ background: dotColor, borderColor: dotColor }}
-      />
+      {handles.has("bottom") && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="bottom"
+          style={{ background: dotColor, borderColor: dotColor }}
+        />
+      )}
+      {handles.has("right") && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="right"
+          style={{ background: dotColor, borderColor: dotColor }}
+        />
+      )}
 
       <div
         style={{

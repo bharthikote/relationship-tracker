@@ -96,22 +96,6 @@ export function TreeCanvas({
       return p ? { x: p.x + SHAPE_SIZE / 2, y: p.y + SHAPE_SIZE / 2 } : undefined;
     };
 
-    const personNodes: Node<PersonNodeData>[] = layout.map(({ person, x, y }) => ({
-      id: person.id,
-      type: "person",
-      position: { x, y },
-      data: {
-        person,
-        color: colorFor(person),
-        highlighted: highlightedPersonIds?.has(person.id),
-        mode,
-        editable: editableOwnerIds === "all" || editableOwnerIds.has(person.ownerId),
-        onSelectPerson,
-        onQuickAdd,
-        onRename,
-      },
-    }));
-
     const spousePairs = new Set<string>();
     for (const r of relationships) {
       if (r.type === "spouse") spousePairs.add([r.personAId, r.personBId].sort().join("|"));
@@ -204,6 +188,37 @@ export function TreeCanvas({
       });
 
     // Siblings connect implicitly through their shared parents' descent line -- no direct edge.
+
+    // Only render a person's connection dot on the sides that actually have a line attached --
+    // an unconnected handle (e.g. no recorded spouse yet) shouldn't show a dangling dot.
+    const usedHandles = new Map<string, Set<string>>();
+    const noteHandle = (nodeId: string, handle: string | null | undefined) => {
+      if (!handle) return;
+      if (!posById.has(nodeId)) return; // junction, not a person
+      if (!usedHandles.has(nodeId)) usedHandles.set(nodeId, new Set());
+      usedHandles.get(nodeId)!.add(handle);
+    };
+    for (const e of [...spouseEdges, ...familyEdges]) {
+      noteHandle(e.source, e.sourceHandle);
+      noteHandle(e.target, e.targetHandle);
+    }
+
+    const personNodes: Node<PersonNodeData>[] = layout.map(({ person, x, y }) => ({
+      id: person.id,
+      type: "person",
+      position: { x, y },
+      data: {
+        person,
+        color: colorFor(person),
+        handles: usedHandles.get(person.id) ?? new Set(),
+        highlighted: highlightedPersonIds?.has(person.id),
+        mode,
+        editable: editableOwnerIds === "all" || editableOwnerIds.has(person.ownerId),
+        onSelectPerson,
+        onQuickAdd,
+        onRename,
+      },
+    }));
 
     return {
       nodes: [...personNodes, ...junctionNodes],
