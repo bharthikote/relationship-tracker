@@ -4,6 +4,7 @@ import type { Caste, PathResult, PersonDetail, PersonSummary, Subcaste, Village 
 
 interface Props {
   personId: string;
+  refreshToken: number;
   villages: Village[];
   castes: Caste[];
   subcastes: Subcaste[];
@@ -12,7 +13,7 @@ interface Props {
   onSetSelf: (id: string) => void;
   onSelectPerson: (id: string) => void;
   onAddRelative: (id: string) => void;
-  onRename: (id: string) => void;
+  onEdit: (id: string) => void;
   onClose: () => void;
   onPathResult: (result: PathResult | null) => void;
   onPersonUpdated: () => void;
@@ -46,6 +47,7 @@ function RelationList({
 
 export function PersonDetailPanel({
   personId,
+  refreshToken,
   villages,
   castes,
   subcastes,
@@ -54,7 +56,7 @@ export function PersonDetailPanel({
   onSetSelf,
   onSelectPerson,
   onAddRelative,
-  onRename,
+  onEdit,
   onClose,
   onPathResult,
   onPersonUpdated,
@@ -65,8 +67,14 @@ export function PersonDetailPanel({
   useEffect(() => {
     setDetail(null);
     setPathCaption(null);
-    api.people.get(personId).then(setDetail).catch(() => setDetail(null));
   }, [personId]);
+
+  // Also re-fetch (without clearing what's on screen) whenever something elsewhere in the tree
+  // was saved -- e.g. the Edit modal updates the shared person list but this panel keeps its own
+  // copy of the detail, which would otherwise go stale until the panel is closed and reopened.
+  useEffect(() => {
+    api.people.get(personId).then(setDetail).catch(() => setDetail(null));
+  }, [personId, refreshToken]);
 
   if (!detail) return <div className="detail-panel">Loading...</div>;
 
@@ -147,7 +155,7 @@ export function PersonDetailPanel({
       <RelationList title="Siblings" people={detail.relations.siblings} onSelectPerson={onSelectPerson} />
 
       <div className="detail-actions">
-        {canEdit && <button onClick={() => onRename(detail.id)}>Rename</button>}
+        {canEdit && <button onClick={() => onEdit(detail.id)}>Edit</button>}
         {canEdit && <button onClick={() => onAddRelative(detail.id)}>Add relative to this person</button>}
         {canEdit && !detail.verified && <button onClick={markVerified}>Mark as verified</button>}
         {selfId && selfId !== detail.id && (

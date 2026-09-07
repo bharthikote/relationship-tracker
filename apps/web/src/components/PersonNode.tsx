@@ -12,14 +12,14 @@ export interface PersonNodeData {
   editable: boolean;
   onSelectPerson: (id: string) => void;
   onQuickAdd: (personId: string, qr: QuickRelation) => void;
-  onRename: (personId: string) => void;
+  onEdit: (personId: string) => void;
   [key: string]: unknown;
 }
 
 export const SHAPE_SIZE = 52;
 
 export function PersonNode({ data }: { data: PersonNodeData }) {
-  const { person, color, handles, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
+  const { person, color, handles, highlighted, mode, editable, onSelectPerson, onQuickAdd, onEdit } = data;
   const [open, setOpen] = useState(false);
   const interactive = mode === "edit" && editable;
   const dotColor = color;
@@ -130,13 +130,13 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
       {interactive && open && (
         <div className="quick-menu" onClick={(e) => e.stopPropagation()}>
           <button
-            className="quick-menu-rename"
+            className="quick-menu-edit"
             onClick={() => {
-              onRename(person.id);
+              onEdit(person.id);
               setOpen(false);
             }}
           >
-            Rename
+            Edit
           </button>
           <div className="quick-menu-grid">
             {QUICK_RELATION_GRID.flat().map((qr) => (

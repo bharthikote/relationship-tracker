@@ -744,7 +744,7 @@ select {
 .quick-menu button:hover {
   background: rgba(47, 129, 247, 0.12);
 }
-.quick-menu-rename {
+.quick-menu-edit {
   font-weight: 600;
   border-bottom: 1px solid var(--border) !important;
   border-radius: 0 !important;

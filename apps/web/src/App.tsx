@@ -18,7 +18,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { PersonDetailPanel } from "./components/PersonDetailPanel";
 import { AddRelativeFlow } from "./components/AddRelativeFlow";
 import { AccountPanel } from "./components/AccountPanel";
-import { RenameModal } from "./components/RenameModal";
+import { EditPersonModal } from "./components/EditPersonModal";
 import { UserMenu } from "./components/UserMenu";
 import { useAuth } from "./auth/AuthContext";
 import { AuthPage } from "./auth/AuthPage";
@@ -69,7 +69,7 @@ function TreeApp({
   const [addFlowPreset, setAddFlowPreset] = useState<{ relationType: AttachRelationType; gender: Gender } | null>(
     null
   );
-  const [renamePersonId, setRenamePersonId] = useState<string | null>(null);
+  const [editPersonId, setEditPersonId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(() => localStorage.getItem(`selfId:${profile.id}`));
   const [pathResult, setPathResult] = useState<PathResult | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -79,6 +79,8 @@ function TreeApp({
   const [accountOpen, setAccountOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit">("edit");
   const [connectedOwnerIds, setConnectedOwnerIds] = useState<Set<string>>(new Set());
+
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const refresh = useCallback(async () => {
     const [p, r, v, c, sc] = await Promise.all([
@@ -93,6 +95,7 @@ function TreeApp({
     setVillages(v);
     setCastes(c);
     setSubcastes(sc);
+    setRefreshToken((t) => t + 1);
   }, []);
 
   useEffect(() => {
@@ -153,7 +156,7 @@ function TreeApp({
     : undefined;
 
   const anchorPerson = addFlowAnchorId ? people.find((p) => p.id === addFlowAnchorId) ?? null : null;
-  const renamePerson = renamePersonId ? people.find((p) => p.id === renamePersonId) ?? null : null;
+  const editPerson = editPersonId ? people.find((p) => p.id === editPersonId) ?? null : null;
   const selectedPerson = selectedPersonId ? people.find((p) => p.id === selectedPersonId) ?? null : null;
   const canEditSelected =
     mode === "edit" &&
@@ -225,7 +228,7 @@ function TreeApp({
             editableOwnerIds={editableOwnerIds}
             onSelectPerson={setSelectedPersonId}
             onQuickAdd={openQuickAdd}
-            onRename={setRenamePersonId}
+            onEdit={setEditPersonId}
             highlightedPersonIds={highlightedPersonIds}
             highlightedEdgeKeys={highlightedEdgeKeys}
           />
@@ -249,6 +252,7 @@ function TreeApp({
       {selectedPersonId && (
         <PersonDetailPanel
           personId={selectedPersonId}
+          refreshToken={refreshToken}
           villages={villages}
           castes={castes}
           subcastes={subcastes}
@@ -260,7 +264,7 @@ function TreeApp({
             setSelectedPersonId(id);
           }}
           onAddRelative={(id) => setAddFlowAnchorId(id)}
-          onRename={setRenamePersonId}
+          onEdit={setEditPersonId}
           onClose={() => {
             setSelectedPersonId(null);
             setPathResult(null);
@@ -290,12 +294,15 @@ function TreeApp({
         />
       )}
 
-      {renamePerson && (
-        <RenameModal
-          person={renamePerson}
-          onClose={() => setRenamePersonId(null)}
-          onRenamed={async () => {
-            setRenamePersonId(null);
+      {editPerson && (
+        <EditPersonModal
+          person={editPerson}
+          villages={villages}
+          castes={castes}
+          subcastes={subcastes}
+          onClose={() => setEditPersonId(null)}
+          onSaved={async () => {
+            setEditPersonId(null);
             await refresh();
           }}
         />

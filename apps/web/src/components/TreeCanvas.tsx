@@ -51,7 +51,7 @@ interface Props {
   editableOwnerIds: Set<string> | "all";
   onSelectPerson: (id: string) => void;
   onQuickAdd: (personId: string, qr: QuickRelation) => void;
-  onRename: (personId: string) => void;
+  onEdit: (personId: string) => void;
   highlightedPersonIds?: Set<string>;
   highlightedEdgeKeys?: Set<string>;
 }
@@ -65,7 +65,7 @@ export function TreeCanvas({
   editableOwnerIds,
   onSelectPerson,
   onQuickAdd,
-  onRename,
+  onEdit,
   highlightedPersonIds,
   highlightedEdgeKeys,
 }: Props) {
@@ -216,7 +216,7 @@ export function TreeCanvas({
         editable: editableOwnerIds === "all" || editableOwnerIds.has(person.ownerId),
         onSelectPerson,
         onQuickAdd,
-        onRename,
+        onEdit,
       },
     }));
 
@@ -234,7 +234,7 @@ export function TreeCanvas({
     editableOwnerIds,
     onSelectPerson,
     onQuickAdd,
-    onRename,
+    onEdit,
   ]);
 
   return (
