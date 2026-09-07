@@ -35,9 +35,15 @@ export function computeLayout(people: Person[], relationships: Relationship[]): 
   const generation = new Map<string, number>();
   const parentChildEdges = relationships.filter((r) => r.type === "parent-child");
 
-  // Roots: people with no recorded parents.
+  // Roots: people with no recorded parents. A parentless person married to someone who *does*
+  // have recorded parents (e.g. a spouse marrying into the family) is not a root -- their real
+  // generation comes from their spouse via the propagation loop below, so seeding them at 0 here
+  // would wrongly strand them at the top instead of next to the spouse they married.
   for (const p of people) {
-    if (!parentsOf.has(p.id)) generation.set(p.id, 0);
+    if (parentsOf.has(p.id)) continue;
+    const spouses = spousesOf.get(p.id) ?? [];
+    const marriedIntoBloodline = spouses.some((s) => parentsOf.has(s));
+    if (!marriedIntoBloodline) generation.set(p.id, 0);
   }
 
   // Propagate generations via parent-child and spouse constraints until stable.
