@@ -85,6 +85,15 @@ export function AddRelativeFlow({
     return relationships.filter((r) => r.type === "parent-child" && r.personBId === anchorPerson.id).map((r) => r.personAId);
   }
 
+  // Adding a parent to the anchor should also make them a parent of the anchor's existing
+  // recorded siblings -- a shared parent is what actually draws them into the same family
+  // bracket on the canvas, so without this a new parent would only cover the one person clicked.
+  function anchorSiblingIds(): string[] {
+    return relationships
+      .filter((r) => r.type === "sibling" && (r.personAId === anchorPerson.id || r.personBId === anchorPerson.id))
+      .map((r) => (r.personAId === anchorPerson.id ? r.personBId : r.personAId));
+  }
+
   async function resolveVillage(nameInput: string): Promise<Village> {
     const trimmed = nameInput.trim();
     const existing = villages.find((v) => v.name.toLowerCase() === trimmed.toLowerCase());
@@ -157,6 +166,21 @@ export function AddRelativeFlow({
           }
         }
 
+        if (relationType === "parent") {
+          for (const siblingId of anchorSiblingIds()) {
+            const alreadyLinked = relationships.some(
+              (r) => r.type === "parent-child" && r.personAId === linkExisting && r.personBId === siblingId
+            );
+            if (!alreadyLinked) {
+              await api.relationships.create({
+                type: "parent-child",
+                personAId: linkExisting,
+                personBId: siblingId,
+              });
+            }
+          }
+        }
+
         onCreated();
         return;
       }
@@ -202,6 +226,16 @@ export function AddRelativeFlow({
             type: "parent-child",
             personAId: parentId,
             personBId: newPerson.id,
+          });
+        }
+      }
+
+      if (relationType === "parent") {
+        for (const siblingId of anchorSiblingIds()) {
+          await api.relationships.create({
+            type: "parent-child",
+            personAId: newPerson.id,
+            personBId: siblingId,
           });
         }
       }
