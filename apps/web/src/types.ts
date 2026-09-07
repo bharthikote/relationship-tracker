@@ -1,5 +1,7 @@
 export type Gender = "male" | "female" | "other";
 
+export type ColorByMode = "none" | "village" | "location" | "caste" | "subcaste";
+
 export interface LocationEvent {
   villageId: string;
   fromDate?: string;

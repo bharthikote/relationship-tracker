@@ -9,13 +9,14 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { Person, Relationship, Village } from "../types";
+import type { ColorByMode, Person, Relationship, Village } from "../types";
 import { computeLayout } from "../layout";
 import { PersonNode, SHAPE_SIZE, type PersonNodeData } from "./PersonNode";
 import { SpouseEdge, type SpouseEdgeData } from "./SpouseEdge";
 import { JunctionNode } from "./JunctionNode";
 import type { QuickRelation } from "../quickRelations";
 import { EnterFullscreenIcon, ExitFullscreenIcon } from "../icons";
+import { DEFAULT_SHAPE_COLOR, colorForId } from "../palette";
 
 function FullscreenControlButton() {
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -45,6 +46,7 @@ interface Props {
   people: Person[];
   relationships: Relationship[];
   villages: Village[];
+  colorBy: ColorByMode;
   mode: "view" | "edit";
   editableOwnerIds: Set<string> | "all";
   onSelectPerson: (id: string) => void;
@@ -58,6 +60,7 @@ export function TreeCanvas({
   people,
   relationships,
   villages,
+  colorBy,
   mode,
   editableOwnerIds,
   onSelectPerson,
@@ -67,6 +70,23 @@ export function TreeCanvas({
   highlightedEdgeKeys,
 }: Props) {
   const villageById = useMemo(() => new Map(villages.map((v) => [v.id, v])), [villages]);
+
+  const colorFor = useMemo(() => {
+    return (person: Person): string => {
+      switch (colorBy) {
+        case "village":
+          return (person.nativeVillageId && villageById.get(person.nativeVillageId)?.color) || DEFAULT_SHAPE_COLOR;
+        case "location":
+          return (person.currentVillageId && villageById.get(person.currentVillageId)?.color) || DEFAULT_SHAPE_COLOR;
+        case "caste":
+          return person.casteId ? colorForId(person.casteId) : DEFAULT_SHAPE_COLOR;
+        case "subcaste":
+          return person.subcasteId ? colorForId(person.subcasteId) : DEFAULT_SHAPE_COLOR;
+        default:
+          return DEFAULT_SHAPE_COLOR;
+      }
+    };
+  }, [colorBy, villageById]);
 
   const { nodes, edges } = useMemo(() => {
     const layout = computeLayout(people, relationships);
@@ -82,7 +102,7 @@ export function TreeCanvas({
       position: { x, y },
       data: {
         person,
-        village: person.currentVillageId ? villageById.get(person.currentVillageId) : undefined,
+        color: colorFor(person),
         highlighted: highlightedPersonIds?.has(person.id),
         mode,
         editable: editableOwnerIds === "all" || editableOwnerIds.has(person.ownerId),
@@ -192,7 +212,7 @@ export function TreeCanvas({
   }, [
     people,
     relationships,
-    villageById,
+    colorFor,
     highlightedPersonIds,
     highlightedEdgeKeys,
     mode,
@@ -218,8 +238,9 @@ export function TreeCanvas({
       </Controls>
       <MiniMap
         nodeColor={(n) => {
+          if (n.type === "junction") return "transparent";
           const data = n.data as PersonNodeData;
-          return data.village?.color ?? "#8b8b8b";
+          return data.color;
         }}
         pannable
         zoomable

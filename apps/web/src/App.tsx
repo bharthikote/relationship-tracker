@@ -3,6 +3,7 @@ import { api } from "./api";
 import type {
   AttachRelationType,
   Caste,
+  ColorByMode,
   Gender,
   PathResult,
   Person,
@@ -13,7 +14,7 @@ import type {
 } from "./types";
 import { TreeCanvas } from "./components/TreeCanvas";
 import { SearchBar } from "./components/SearchBar";
-import { VillageLegend } from "./components/VillageLegend";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { PersonDetailPanel } from "./components/PersonDetailPanel";
 import { AddRelativeFlow } from "./components/AddRelativeFlow";
 import { AccountPanel } from "./components/AccountPanel";
@@ -22,7 +23,7 @@ import { UserMenu } from "./components/UserMenu";
 import { useAuth } from "./auth/AuthContext";
 import { AuthPage } from "./auth/AuthPage";
 import { quickRelationToPreset, type QuickRelation } from "./quickRelations";
-import { EyeIcon, PencilIcon } from "./icons";
+import { EyeIcon, PencilIcon, GearIcon, AnalyticsIcon } from "./icons";
 
 function App() {
   const { session, loading: authLoading, signOut } = useAuth();
@@ -69,10 +70,12 @@ function TreeApp({
     null
   );
   const [renamePersonId, setRenamePersonId] = useState<string | null>(null);
-  const [activeVillageId, setActiveVillageId] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(() => localStorage.getItem(`selfId:${profile.id}`));
   const [pathResult, setPathResult] = useState<PathResult | null>(null);
-  const [legendOpen, setLegendOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [colorBy, setColorByState] = useState<ColorByMode>(
+    () => (localStorage.getItem(`colorBy:${profile.id}`) as ColorByMode | null) ?? "none"
+  );
   const [accountOpen, setAccountOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit">("edit");
   const [connectedOwnerIds, setConnectedOwnerIds] = useState<Set<string>>(new Set());
@@ -113,6 +116,11 @@ function TreeApp({
     localStorage.setItem(`selfId:${profile.id}`, id);
   }
 
+  function setColorBy(mode: ColorByMode) {
+    setColorByState(mode);
+    localStorage.setItem(`colorBy:${profile.id}`, mode);
+  }
+
   async function addSelf() {
     const { person } = await api.people.create({
       name: profile.displayName || profile.email.split("@")[0],
@@ -131,13 +139,6 @@ function TreeApp({
   const myPeople = people.filter((p) => p.ownerId === profile.id);
   const editableOwnerIds: Set<string> | "all" =
     profile.role === "super_admin" ? "all" : new Set([profile.id, ...connectedOwnerIds]);
-  const visiblePeople = activeVillageId
-    ? people.filter((p) => p.currentVillageId === activeVillageId)
-    : people;
-  const visiblePersonIds = new Set(visiblePeople.map((p) => p.id));
-  const visibleRelationships = relationships.filter(
-    (r) => visiblePersonIds.has(r.personAId) && visiblePersonIds.has(r.personBId)
-  );
 
   const highlightedPersonIds = pathResult
     ? new Set([selfId, ...pathResult.steps.map((s) => s.personId)].filter(Boolean) as string[])
@@ -167,8 +168,16 @@ function TreeApp({
           <SearchBar people={people} onSelect={setSelectedPersonId} />
         </div>
         <div className="floating-controls-right">
-          <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)}>
-            View Settings
+          <button
+            className="icon-toggle"
+            onClick={() => setSettingsOpen((o) => !o)}
+            aria-label="Settings"
+            title="Settings"
+          >
+            <GearIcon />
+          </button>
+          <button className="icon-toggle" aria-label="Analytics" title="Analytics (coming soon)">
+            <AnalyticsIcon />
           </button>
           <div className="mode-toggle">
             <button
@@ -195,14 +204,9 @@ function TreeApp({
           />
         </div>
 
-        {legendOpen && (
+        {settingsOpen && (
           <div className="legend-drawer">
-            <VillageLegend
-              villages={villages}
-              people={people}
-              activeVillageId={activeVillageId}
-              onFilter={setActiveVillageId}
-            />
+            <SettingsPanel colorBy={colorBy} onChange={setColorBy} />
           </div>
         )}
 
@@ -213,9 +217,10 @@ function TreeApp({
           </div>
         ) : (
           <TreeCanvas
-            people={visiblePeople}
-            relationships={visibleRelationships}
+            people={people}
+            relationships={relationships}
             villages={villages}
+            colorBy={colorBy}
             mode={mode}
             editableOwnerIds={editableOwnerIds}
             onSelectPerson={setSelectedPersonId}

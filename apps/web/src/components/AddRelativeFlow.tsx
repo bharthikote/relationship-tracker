@@ -11,8 +11,7 @@ import type {
   Village,
 } from "../types";
 import { AutosuggestInput } from "./AutosuggestInput";
-
-const PALETTE = ["#2f81f7", "#e0763a", "#3fb950", "#a371f7", "#db61a2", "#d29922", "#39c5cf"];
+import { PALETTE } from "../palette";
 
 const RELATION_LABELS: Record<AttachRelationType, string> = {
   spouse: "Spouse",

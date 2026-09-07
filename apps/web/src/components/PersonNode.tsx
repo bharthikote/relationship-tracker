@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Handle, Position } from "@xyflow/react";
-import type { Person, Village } from "../types";
+import type { Person } from "../types";
 import { QUICK_RELATION_GRID, QUICK_RELATION_LABELS, type QuickRelation } from "../quickRelations";
 
 export interface PersonNodeData {
   person: Person;
-  village?: Village;
+  color: string;
   highlighted?: boolean;
   mode: "view" | "edit";
   editable: boolean;
@@ -18,10 +18,10 @@ export interface PersonNodeData {
 export const SHAPE_SIZE = 52;
 
 export function PersonNode({ data }: { data: PersonNodeData }) {
-  const { person, village, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
+  const { person, color, highlighted, mode, editable, onSelectPerson, onQuickAdd, onRename } = data;
   const [open, setOpen] = useState(false);
   const interactive = mode === "edit" && editable;
-  const dotColor = village?.color ?? "#8b8b8b";
+  const dotColor = color;
 
   useEffect(() => {
     if (!open) return;
