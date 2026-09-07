@@ -2,6 +2,7 @@ import type {
   AdminProfile,
   AttachRelationType,
   Caste,
+  ConnectionPermission,
   ConnectionRequestSummary,
   DiscoverProfile,
   LocationEvent,
@@ -51,11 +52,23 @@ export const api = {
   },
   connections: {
     list: () => req<ConnectionRequestSummary[]>("/api/connections"),
-    create: (toUserId: string, message?: string) =>
-      req("/api/connections", { method: "POST", body: JSON.stringify({ toUserId, message }) }),
-    accept: (id: string) => req(`/api/connections/${id}/accept`, { method: "POST" }),
+    create: (toUserId: string, message?: string, permission?: ConnectionPermission) =>
+      req<ConnectionRequestSummary>("/api/connections", {
+        method: "POST",
+        body: JSON.stringify({ toUserId, message, permission }),
+      }),
+    accept: (id: string, permission?: ConnectionPermission) =>
+      req<ConnectionRequestSummary>(`/api/connections/${id}/accept`, {
+        method: "POST",
+        body: JSON.stringify({ permission }),
+      }),
     decline: (id: string) => req(`/api/connections/${id}/decline`, { method: "POST" }),
     remove: (id: string) => req(`/api/connections/${id}`, { method: "DELETE" }),
+    updatePermission: (id: string, permission: ConnectionPermission) =>
+      req<ConnectionRequestSummary>(`/api/connections/${id}/permission`, {
+        method: "PATCH",
+        body: JSON.stringify({ permission }),
+      }),
   },
   admin: {
     users: () => req<AdminProfile[]>("/api/admin/users"),

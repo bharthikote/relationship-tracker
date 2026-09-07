@@ -107,12 +107,16 @@ export interface DiscoverProfile {
 }
 
 export type ConnectionStatus = "pending" | "accepted" | "declined";
+export type ConnectionPermission = "view" | "edit";
 
 export interface ConnectionRequestSummary {
   id: string;
   status: ConnectionStatus;
   message?: string;
   direction: "incoming" | "outgoing";
+  // myPermission: what I grant the other person on MY tree. theirPermission: what they grant me on theirs.
+  myPermission: ConnectionPermission;
+  theirPermission: ConnectionPermission;
   fromUser: { id: string; displayName: string };
   toUser: { id: string; displayName: string };
   createdAt: string;

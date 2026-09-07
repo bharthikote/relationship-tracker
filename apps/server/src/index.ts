@@ -150,6 +150,42 @@ app.get("/api/users/search", async (req, res) => {
   res.json([{ id: match.id, displayName: match.displayName || match.email }]);
 });
 
+function isValidPermission(v: unknown): v is "view" | "edit" {
+  return v === "view" || v === "edit";
+}
+
+function toApiConnection(
+  r: {
+    id: string;
+    status: string;
+    message: string | null;
+    fromUserId: string;
+    toUserId: string;
+    fromPermission: string;
+    toPermission: string;
+    createdAt: Date;
+    fromUser: { id: string; displayName: string | null; email: string };
+    toUser: { id: string; displayName: string | null; email: string };
+  },
+  me: string
+) {
+  const direction = r.fromUserId === me ? "outgoing" : "incoming";
+  // myPermission: what I grant the other person on MY tree. theirPermission: what they grant me on THEIRS.
+  const myPermission = r.fromUserId === me ? r.fromPermission : r.toPermission;
+  const theirPermission = r.fromUserId === me ? r.toPermission : r.fromPermission;
+  return {
+    id: r.id,
+    status: r.status,
+    message: r.message ?? undefined,
+    direction,
+    myPermission,
+    theirPermission,
+    fromUser: { id: r.fromUser.id, displayName: r.fromUser.displayName || r.fromUser.email },
+    toUser: { id: r.toUser.id, displayName: r.toUser.displayName || r.toUser.email },
+    createdAt: r.createdAt.toISOString(),
+  };
+}
+
 app.get("/api/connections", async (req, res) => {
   const me = req.profile!.id;
   const requests = await prisma.connectionRequest.findMany({
@@ -160,23 +196,16 @@ app.get("/api/connections", async (req, res) => {
     },
     orderBy: { createdAt: "desc" },
   });
-  res.json(
-    requests.map((r) => ({
-      id: r.id,
-      status: r.status,
-      message: r.message ?? undefined,
-      direction: r.fromUserId === me ? "outgoing" : "incoming",
-      fromUser: { id: r.fromUser.id, displayName: r.fromUser.displayName || r.fromUser.email },
-      toUser: { id: r.toUser.id, displayName: r.toUser.displayName || r.toUser.email },
-      createdAt: r.createdAt.toISOString(),
-    }))
-  );
+  res.json(requests.map((r) => toApiConnection(r, me)));
 });
 
 app.post("/api/connections", async (req, res) => {
-  const { toUserId, message } = req.body ?? {};
+  const { toUserId, message, permission } = req.body ?? {};
   const me = req.profile!.id;
   if (!toUserId || toUserId === me) return res.status(400).json({ error: "invalid toUserId" });
+  if (permission !== undefined && !isValidPermission(permission)) {
+    return res.status(400).json({ error: "permission must be 'view' or 'edit'" });
+  }
   const target = await prisma.profile.findUnique({ where: { id: toUserId } });
   if (!target) return res.status(404).json({ error: "user not found" });
 
@@ -191,19 +220,56 @@ app.post("/api/connections", async (req, res) => {
   if (existing) return res.status(409).json({ error: "a connection request already exists", status: existing.status });
 
   const created = await prisma.connectionRequest.create({
-    data: { fromUserId: me, toUserId, message },
+    data: { fromUserId: me, toUserId, message, fromPermission: permission ?? "view" },
+    include: {
+      fromUser: { select: { id: true, displayName: true, email: true } },
+      toUser: { select: { id: true, displayName: true, email: true } },
+    },
   });
-  res.status(201).json(created);
+  res.status(201).json(toApiConnection(created, me));
 });
 
 app.post("/api/connections/:id/accept", async (req, res) => {
+  const { permission } = req.body ?? {};
+  if (permission !== undefined && !isValidPermission(permission)) {
+    return res.status(400).json({ error: "permission must be 'view' or 'edit'" });
+  }
   const reqRow = await prisma.connectionRequest.findUnique({ where: { id: req.params.id } });
   if (!reqRow || reqRow.toUserId !== req.profile!.id) return res.status(404).json({ error: "not found" });
   const updated = await prisma.connectionRequest.update({
     where: { id: reqRow.id },
-    data: { status: "accepted", respondedAt: new Date() },
+    data: { status: "accepted", respondedAt: new Date(), toPermission: permission ?? "view" },
+    include: {
+      fromUser: { select: { id: true, displayName: true, email: true } },
+      toUser: { select: { id: true, displayName: true, email: true } },
+    },
   });
-  res.json(updated);
+  res.json(toApiConnection(updated, req.profile!.id));
+});
+
+app.patch("/api/connections/:id/permission", async (req, res) => {
+  const { permission } = req.body ?? {};
+  if (!isValidPermission(permission)) {
+    return res.status(400).json({ error: "permission must be 'view' or 'edit'" });
+  }
+  const me = req.profile!.id;
+  const reqRow = await prisma.connectionRequest.findUnique({ where: { id: req.params.id } });
+  if (!reqRow || (reqRow.fromUserId !== me && reqRow.toUserId !== me)) {
+    return res.status(404).json({ error: "not found" });
+  }
+  if (reqRow.status !== "accepted") {
+    return res.status(400).json({ error: "connection must be accepted before setting a permission" });
+  }
+  // A user may only change the permission THEY grant, never the other side's grant.
+  const updated = await prisma.connectionRequest.update({
+    where: { id: reqRow.id },
+    data: reqRow.fromUserId === me ? { fromPermission: permission } : { toPermission: permission },
+    include: {
+      fromUser: { select: { id: true, displayName: true, email: true } },
+      toUser: { select: { id: true, displayName: true, email: true } },
+    },
+  });
+  res.json(toApiConnection(updated, me));
 });
 
 app.post("/api/connections/:id/decline", async (req, res) => {

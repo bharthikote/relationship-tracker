@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type {
   AdminProfile,
+  ConnectionPermission,
   ConnectionRequestSummary,
   DiscoverProfile,
   Profile,
@@ -96,11 +97,28 @@ function ProfileTab({
   );
 }
 
+function PermissionSelect({
+  value,
+  onChange,
+}: {
+  value: ConnectionPermission;
+  onChange: (p: ConnectionPermission) => void;
+}) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value as ConnectionPermission)}>
+      <option value="view">View only</option>
+      <option value="edit">Can edit</option>
+    </select>
+  );
+}
+
 function ConnectionsTab() {
   const [discoverList, setDiscoverList] = useState<DiscoverProfile[]>([]);
   const [requests, setRequests] = useState<ConnectionRequestSummary[]>([]);
   const [email, setEmail] = useState("");
+  const [newRequestPermission, setNewRequestPermission] = useState<ConnectionPermission>("view");
   const [message, setMessage] = useState<string | null>(null);
+  const [acceptPermissions, setAcceptPermissions] = useState<Record<string, ConnectionPermission>>({});
 
   async function refresh() {
     const [d, r] = await Promise.all([api.discover(), api.connections.list()]);
@@ -121,12 +139,22 @@ function ConnectionsTab() {
 
   async function sendRequest(toUserId: string) {
     try {
-      await api.connections.create(toUserId);
+      await api.connections.create(toUserId, undefined, newRequestPermission);
       setEmail("");
       await refresh();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Could not send request");
     }
+  }
+
+  async function acceptRequest(id: string) {
+    await api.connections.accept(id, acceptPermissions[id] ?? "view");
+    await refresh();
+  }
+
+  async function changeMyPermission(id: string, permission: ConnectionPermission) {
+    await api.connections.updatePermission(id, permission);
+    await refresh();
   }
 
   const incoming = requests.filter((r) => r.direction === "incoming" && r.status === "pending");
@@ -135,14 +163,21 @@ function ConnectionsTab() {
 
   return (
     <div>
+      <p className="muted-text">
+        Connecting lets someone else see and, if you allow it, edit your tree — and you theirs. Each of you
+        controls edit access to your own tree independently, and can change it any time.
+      </p>
+
       <div className="connections-section">
         <div className="relation-list-title">Connect by email</div>
         <div className="inline-form">
           <input placeholder="someone@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <PermissionSelect value={newRequestPermission} onChange={setNewRequestPermission} />
           <button onClick={requestByEmail} disabled={!email.trim()}>
             Send request
           </button>
         </div>
+        <div className="hint-text">Access you're offering them on your tree if they accept.</div>
         {message && <div className="error-text">{message}</div>}
       </div>
 
@@ -165,16 +200,16 @@ function ConnectionsTab() {
           <div className="relation-list-title">Incoming requests</div>
           {incoming.map((r) => (
             <div key={r.id} className="connection-row">
-              <span>{r.fromUser.displayName}</span>
+              <span>
+                {r.fromUser.displayName} — offers you <strong>{r.theirPermission === "edit" ? "edit" : "view"}</strong>{" "}
+                access to their tree
+              </span>
               <div className="connection-row-actions">
-                <button
-                  onClick={async () => {
-                    await api.connections.accept(r.id);
-                    refresh();
-                  }}
-                >
-                  Accept
-                </button>
+                <PermissionSelect
+                  value={acceptPermissions[r.id] ?? "view"}
+                  onChange={(p) => setAcceptPermissions((prev) => ({ ...prev, [r.id]: p }))}
+                />
+                <button onClick={() => acceptRequest(r.id)}>Accept</button>
                 <button
                   onClick={async () => {
                     await api.connections.decline(r.id);
@@ -186,6 +221,7 @@ function ConnectionsTab() {
               </div>
             </div>
           ))}
+          <div className="hint-text">The dropdown sets the access you'll grant them on your tree.</div>
         </div>
       )}
 
@@ -214,16 +250,26 @@ function ConnectionsTab() {
           {accepted.map((r) => {
             const other = r.direction === "outgoing" ? r.toUser : r.fromUser;
             return (
-              <div key={r.id} className="connection-row">
+              <div key={r.id} className="connection-row connection-row-accepted">
                 <span>{other.displayName}</span>
-                <button
-                  onClick={async () => {
-                    await api.connections.remove(r.id);
-                    refresh();
-                  }}
-                >
-                  Disconnect
-                </button>
+                <div className="connection-row-actions">
+                  <label className="permission-label">
+                    Their access to you
+                    <span className="permission-readonly">{r.theirPermission === "edit" ? "Can edit" : "View only"}</span>
+                  </label>
+                  <label className="permission-label">
+                    Your access to them
+                    <PermissionSelect value={r.myPermission} onChange={(p) => changeMyPermission(r.id, p)} />
+                  </label>
+                  <button
+                    onClick={async () => {
+                      await api.connections.remove(r.id);
+                      refresh();
+                    }}
+                  >
+                    Disconnect
+                  </button>
+                </div>
               </div>
             );
           })}

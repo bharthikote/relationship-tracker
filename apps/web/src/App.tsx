@@ -107,17 +107,24 @@ function TreeApp({
     refresh();
   }, [refresh]);
 
+  const refreshConnections = useCallback(async () => {
+    const requests = await api.connections.list();
+    const ids = new Set<string>();
+    for (const r of requests) {
+      if (r.status !== "accepted") continue;
+      // theirPermission is what the OTHER person granted ME -- only "edit" makes their tree
+      // editable to me; a "view" grant still lets me see it (handled server-side via
+      // canView/visibleOwnerIds regardless of this set) but not add/change anything in it.
+      if (r.theirPermission !== "edit") continue;
+      const otherId = r.direction === "outgoing" ? r.toUser.id : r.fromUser.id;
+      ids.add(otherId);
+    }
+    setConnectedOwnerIds(ids);
+  }, []);
+
   useEffect(() => {
-    api.connections.list().then((requests) => {
-      const ids = new Set<string>();
-      for (const r of requests) {
-        if (r.status !== "accepted") continue;
-        ids.add(r.fromUser.id);
-        ids.add(r.toUser.id);
-      }
-      setConnectedOwnerIds(ids);
-    });
-  }, [profile.id]);
+    refreshConnections();
+  }, [refreshConnections]);
 
   function setSelf(id: string) {
     setSelfId(id);
@@ -330,7 +337,10 @@ function TreeApp({
         <AccountPanel
           profile={profile}
           onProfileUpdated={onProfileUpdated}
-          onClose={() => setAccountOpen(false)}
+          onClose={() => {
+            setAccountOpen(false);
+            refreshConnections();
+          }}
         />
       )}
     </div>

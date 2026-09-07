@@ -49,8 +49,22 @@ export async function canView(profile: Profile, ownerId: string): Promise<boolea
 }
 
 // Whether `profile` may create a relationship touching people owned by `ownerId`
-// (their own tree always; someone else's only with an accepted connection).
+// (their own tree always; someone else's only if `ownerId` has granted `profile` "edit" on
+// their tree via an accepted connection -- viewing an accepted connection does NOT imply edit
+// rights anymore, each side grants edit independently and can restrict it back to view-only).
 export async function canEditOwner(profile: Profile, ownerId: string): Promise<boolean> {
   if (profile.role === "super_admin" || profile.id === ownerId) return true;
-  return isConnected(profile.id, ownerId);
+  const rel = await prisma.connectionRequest.findFirst({
+    where: {
+      status: "accepted",
+      OR: [
+        { fromUserId: ownerId, toUserId: profile.id },
+        { fromUserId: profile.id, toUserId: ownerId },
+      ],
+    },
+  });
+  if (!rel) return false;
+  // Whichever side is `ownerId` is the one granting access to their own tree.
+  const grant = rel.fromUserId === ownerId ? rel.fromPermission : rel.toPermission;
+  return grant === "edit";
 }

@@ -40,6 +40,11 @@ enum ConnectionStatus {
   declined
 }
 
+enum ConnectionPermission {
+  view
+  edit
+}
+
 // Mirrors a Supabase Auth user (id matches auth.users.id). Created on first login.
 model Profile {
   id             String         @id
@@ -65,6 +70,13 @@ model ConnectionRequest {
   fromUser   Profile @relation("RequestFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
   toUserId   String
   toUser     Profile @relation("RequestTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  // Directional edit grants -- each user controls access to their OWN tree independently.
+  // fromPermission: what fromUser grants toUser on fromUser's tree.
+  // toPermission: what toUser grants fromUser on toUser's tree.
+  // Both default to "view" -- edit access must be explicitly granted, never implied by accepting.
+  fromPermission ConnectionPermission @default(view)
+  toPermission   ConnectionPermission @default(view)
 
   message     String?
   createdAt   DateTime  @default(now())

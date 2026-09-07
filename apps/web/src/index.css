@@ -647,6 +647,24 @@ select {
   font-size: 12px;
   white-space: nowrap;
 }
+.connection-row select {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.connection-row-accepted {
+  flex-wrap: wrap;
+}
+.permission-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.permission-readonly {
+  font-size: 13px;
+  color: var(--text);
+}
 .admin-table-wrap {
   overflow-x: auto;
 }
