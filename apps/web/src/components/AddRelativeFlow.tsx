@@ -47,6 +47,7 @@ export function AddRelativeFlow({
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender>(preset?.gender ?? "female");
   const [isDeceased, setIsDeceased] = useState(false);
+  const [deathYear, setDeathYear] = useState("");
   const [caste, setCaste] = useState(
     preset?.relationType === "sibling" ? castes.find((c) => c.id === anchorPerson.casteId)?.name ?? "" : ""
   );
@@ -197,6 +198,7 @@ export function AddRelativeFlow({
         name,
         gender,
         isDeceased,
+        deathYear: isDeceased ? deathYear.trim() || undefined : undefined,
         casteId: casteRow?.id,
         subcasteId: subcasteRow?.id,
         dob: birthYear.trim() || undefined,
@@ -244,6 +246,9 @@ export function AddRelativeFlow({
       setSubmitting(false);
     }
   }
+
+  const deathYearBeforeBirth =
+    isDeceased && !!deathYear.trim() && !!birthYear.trim() && Number(deathYear) < Number(birthYear);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -323,12 +328,32 @@ export function AddRelativeFlow({
               />
             </label>
             <label className="checkbox-row">
-              <input type="checkbox" checked={isDeceased} onChange={(e) => setIsDeceased(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={isDeceased}
+                onChange={(e) => {
+                  setIsDeceased(e.target.checked);
+                  if (!e.target.checked) setDeathYear("");
+                }}
+              />
               Deceased
             </label>
+            {isDeceased && (
+              <label>
+                Year of death
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="e.g. 2010"
+                  value={deathYear}
+                  onChange={(e) => setDeathYear(e.target.value)}
+                />
+              </label>
+            )}
+            {deathYearBeforeBirth && <div className="error-text">Year of death can't be before year of birth</div>}
             <div className="step-actions">
               <button
-                disabled={!name.trim()}
+                disabled={!name.trim() || deathYearBeforeBirth}
                 onClick={() => setStep(relationType === "spouse" ? "consanguineous" : "location")}
               >
                 Next

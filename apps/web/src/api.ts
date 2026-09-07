@@ -86,6 +86,7 @@ export const api = {
       gender: string;
       dob?: string;
       isDeceased?: boolean;
+      deathYear?: string;
       casteId?: string;
       subcasteId?: string;
       nativeVillageId?: string;
@@ -107,6 +108,7 @@ export const api = {
         gender: string;
         dob: string;
         isDeceased: boolean;
+        deathYear: string;
         casteId: string;
         subcasteId: string;
         verified: boolean;

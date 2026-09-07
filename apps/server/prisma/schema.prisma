@@ -114,6 +114,7 @@ model Person {
   gender   Gender
   dob      String?
   isDeceased Boolean @default(false)
+  deathYear  String?
   photoUrl String?
 
   ownerId String

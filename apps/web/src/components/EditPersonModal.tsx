@@ -21,6 +21,7 @@ export function EditPersonModal({ person, villages, castes, subcastes, onClose, 
   const [nameLocal, setNameLocal] = useState(person.nameLocal ?? "");
   const [dob, setDob] = useState(person.dob ?? "");
   const [isDeceased, setIsDeceased] = useState(person.isDeceased);
+  const [deathYear, setDeathYear] = useState(person.deathYear ?? "");
   const [caste, setCaste] = useState(nameOf(castes, person.casteId));
   const [subcaste, setSubcaste] = useState(nameOf(subcastes, person.subcasteId));
   const [nativeVillage, setNativeVillage] = useState(nameOf(villages, person.nativeVillageId));
@@ -55,6 +56,10 @@ export function EditPersonModal({ person, villages, castes, subcastes, onClose, 
 
   async function save() {
     if (!name.trim()) return;
+    if (isDeceased && deathYear.trim() && dob.trim() && Number(deathYear) < Number(dob)) {
+      setError("Year of death can't be before year of birth");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -69,6 +74,7 @@ export function EditPersonModal({ person, villages, castes, subcastes, onClose, 
         nameLocal: nameLocal.trim() || undefined,
         dob: dob.trim() || undefined,
         isDeceased,
+        deathYear: isDeceased ? deathYear.trim() || undefined : undefined,
         casteId,
         subcasteId,
         nativeVillageId,
@@ -128,9 +134,29 @@ export function EditPersonModal({ person, villages, castes, subcastes, onClose, 
           <AutosuggestInput value={subcaste} onChange={setSubcaste} options={subcastes.map((s) => s.name)} />
         </label>
         <label className="checkbox-row">
-          <input type="checkbox" checked={isDeceased} onChange={(e) => setIsDeceased(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={isDeceased}
+            onChange={(e) => {
+              setIsDeceased(e.target.checked);
+              if (!e.target.checked) setDeathYear("");
+            }}
+          />
           Deceased
         </label>
+        {isDeceased && (
+          <label>
+            Year of death
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="e.g. 2010"
+              value={deathYear}
+              onChange={(e) => setDeathYear(e.target.value)}
+              autoFocus
+            />
+          </label>
+        )}
         {error && <div className="error-text">{error}</div>}
         <div className="step-actions">
           <button disabled={saving || !name.trim()} onClick={save}>

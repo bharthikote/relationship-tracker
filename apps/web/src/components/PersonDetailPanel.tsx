@@ -140,6 +140,11 @@ export function PersonDetailPanel({
             Born <strong>{detail.dob}</strong>
           </div>
         )}
+        {detail.isDeceased && detail.deathYear && (
+          <div>
+            Died <strong>{detail.deathYear}</strong>
+          </div>
+        )}
         {(casteName || subcasteName) && (
           <div>
             {casteName}

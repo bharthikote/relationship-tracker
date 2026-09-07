@@ -119,7 +119,12 @@ export function TreeCanvas({
       const lines: string[] = [];
       if (infoFields.has("age")) {
         const by = birthYear(person);
-        if (by !== undefined) lines.push(`${thisYear - by}y`);
+        if (by !== undefined) {
+          // A deceased person's age is frozen at their year of death, not still counting up.
+          const dy = person.isDeceased ? parseInt(person.deathYear ?? "", 10) : NaN;
+          const asOfYear = Number.isFinite(dy) ? dy : thisYear;
+          lines.push(`${asOfYear - by}y`);
+        }
       }
       if (infoFields.has("currentLocation")) {
         const v = person.currentVillageId ? villageById.get(person.currentVillageId) : undefined;

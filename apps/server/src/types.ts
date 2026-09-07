@@ -14,6 +14,7 @@ export interface Person {
   gender: Gender;
   dob?: string;
   isDeceased: boolean;
+  deathYear?: string;
   photoUrl?: string;
   casteId?: string;
   subcasteId?: string;
