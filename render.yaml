@@ -17,7 +17,6 @@ services:
   - type: web
     name: relationship-tracker-web
     env: static
-    plan: free
     rootDir: apps/web
     buildCommand: npm install && npm run build
     staticPublishPath: dist
