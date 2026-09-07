@@ -107,6 +107,40 @@ select {
   overflow-y: auto;
 }
 
+.color-legend {
+  position: absolute;
+  top: 58px;
+  left: 12px;
+  z-index: 20;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  max-height: 50vh;
+  min-width: 160px;
+  overflow-y: auto;
+}
+.color-legend-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.color-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+}
+.color-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .settings-panel {
   padding: 12px;
   min-width: 240px;

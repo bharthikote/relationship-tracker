@@ -42,6 +42,14 @@ function FullscreenControlButton() {
 const nodeTypes = { person: PersonNode, junction: JunctionNode };
 const edgeTypes = { spouse: SpouseEdge };
 
+const LEGEND_TITLE: Record<ColorByMode, string> = {
+  none: "",
+  village: "Village",
+  location: "Location",
+  caste: "Caste",
+  subcaste: "Subcaste",
+};
+
 interface Props {
   people: Person[];
   relationships: Relationship[];
@@ -74,6 +82,8 @@ export function TreeCanvas({
   highlightedEdgeKeys,
 }: Props) {
   const villageById = useMemo(() => new Map(villages.map((v) => [v.id, v])), [villages]);
+  const casteById = useMemo(() => new Map(castes.map((c) => [c.id, c])), [castes]);
+  const subcasteById = useMemo(() => new Map(subcastes.map((s) => [s.id, s])), [subcastes]);
   // castes/subcastes come back from the API already sorted by name, so their array index is a
   // stable rank to feed into colorForRank -- same list, same order, same rank every render.
   const casteRankById = useMemo(() => new Map(castes.map((c, i) => [c.id, i])), [castes]);
@@ -99,6 +109,41 @@ export function TreeCanvas({
       }
     };
   }, [colorBy, villageById, casteRankById, subcasteRankById]);
+
+  // The set of distinct colors actually in use right now, so the legend only lists entries that
+  // are on screen instead of every village/caste/subcaste ever recorded system-wide.
+  const legendEntries = useMemo(() => {
+    if (colorBy === "none") return [];
+    const seen = new Map<string, { name: string; color: string }>();
+    for (const person of people) {
+      let id: string | undefined;
+      let name: string | undefined;
+      let color: string | undefined;
+      if (colorBy === "village") {
+        id = person.nativeVillageId;
+        const v = id ? villageById.get(id) : undefined;
+        name = v?.name;
+        color = v?.color;
+      } else if (colorBy === "location") {
+        id = person.currentVillageId;
+        const v = id ? villageById.get(id) : undefined;
+        name = v?.name;
+        color = v?.color;
+      } else if (colorBy === "caste") {
+        id = person.casteId;
+        const rank = id ? casteRankById.get(id) : undefined;
+        name = id ? casteById.get(id)?.name : undefined;
+        color = rank !== undefined ? colorForRank(rank) : undefined;
+      } else if (colorBy === "subcaste") {
+        id = person.subcasteId;
+        const rank = id ? subcasteRankById.get(id) : undefined;
+        name = id ? subcasteById.get(id)?.name : undefined;
+        color = rank !== undefined ? colorForRank(rank) : undefined;
+      }
+      if (id && name && color && !seen.has(id)) seen.set(id, { name, color });
+    }
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [colorBy, people, villageById, casteById, subcasteById, casteRankById, subcasteRankById]);
 
   const { nodes, edges } = useMemo(() => {
     const layout = computeLayout(people, relationships);
@@ -250,28 +295,42 @@ export function TreeCanvas({
   ]);
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      fitView
-      minZoom={0.1}
-      maxZoom={2}
-    >
-      <Background />
-      <Controls>
-        <FullscreenControlButton />
-      </Controls>
-      <MiniMap
-        nodeColor={(n) => {
-          if (n.type === "junction") return "transparent";
-          const data = n.data as PersonNodeData;
-          return data.color;
-        }}
-        pannable
-        zoomable
-      />
-    </ReactFlow>
+    <>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        fitView
+        minZoom={0.1}
+        maxZoom={2}
+      >
+        <Background />
+        <Controls>
+          <FullscreenControlButton />
+        </Controls>
+        <MiniMap
+          nodeColor={(n) => {
+            if (n.type === "junction") return "transparent";
+            const data = n.data as PersonNodeData;
+            return data.color;
+          }}
+          pannable
+          zoomable
+        />
+      </ReactFlow>
+
+      {legendEntries.length > 0 && (
+        <div className="color-legend">
+          <div className="color-legend-title">{LEGEND_TITLE[colorBy]}</div>
+          {legendEntries.map((entry) => (
+            <div key={entry.name} className="color-legend-row">
+              <span className="color-legend-swatch" style={{ background: entry.color }} />
+              <span>{entry.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
