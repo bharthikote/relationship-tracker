@@ -9,14 +9,14 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { ColorByMode, Person, Relationship, Village } from "../types";
+import type { Caste, ColorByMode, Person, Relationship, Subcaste, Village } from "../types";
 import { computeLayout } from "../layout";
 import { PersonNode, SHAPE_SIZE, type PersonNodeData } from "./PersonNode";
 import { SpouseEdge, type SpouseEdgeData } from "./SpouseEdge";
 import { JunctionNode } from "./JunctionNode";
 import type { QuickRelation } from "../quickRelations";
 import { EnterFullscreenIcon, ExitFullscreenIcon } from "../icons";
-import { DEFAULT_SHAPE_COLOR, colorForId } from "../palette";
+import { DEFAULT_SHAPE_COLOR, colorForRank } from "../palette";
 
 function FullscreenControlButton() {
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -46,6 +46,8 @@ interface Props {
   people: Person[];
   relationships: Relationship[];
   villages: Village[];
+  castes: Caste[];
+  subcastes: Subcaste[];
   colorBy: ColorByMode;
   mode: "view" | "edit";
   editableOwnerIds: Set<string> | "all";
@@ -60,6 +62,8 @@ export function TreeCanvas({
   people,
   relationships,
   villages,
+  castes,
+  subcastes,
   colorBy,
   mode,
   editableOwnerIds,
@@ -70,6 +74,10 @@ export function TreeCanvas({
   highlightedEdgeKeys,
 }: Props) {
   const villageById = useMemo(() => new Map(villages.map((v) => [v.id, v])), [villages]);
+  // castes/subcastes come back from the API already sorted by name, so their array index is a
+  // stable rank to feed into colorForRank -- same list, same order, same rank every render.
+  const casteRankById = useMemo(() => new Map(castes.map((c, i) => [c.id, i])), [castes]);
+  const subcasteRankById = useMemo(() => new Map(subcastes.map((s, i) => [s.id, i])), [subcastes]);
 
   const colorFor = useMemo(() => {
     return (person: Person): string => {
@@ -78,15 +86,19 @@ export function TreeCanvas({
           return (person.nativeVillageId && villageById.get(person.nativeVillageId)?.color) || DEFAULT_SHAPE_COLOR;
         case "location":
           return (person.currentVillageId && villageById.get(person.currentVillageId)?.color) || DEFAULT_SHAPE_COLOR;
-        case "caste":
-          return person.casteId ? colorForId(person.casteId) : DEFAULT_SHAPE_COLOR;
-        case "subcaste":
-          return person.subcasteId ? colorForId(person.subcasteId) : DEFAULT_SHAPE_COLOR;
+        case "caste": {
+          const rank = person.casteId ? casteRankById.get(person.casteId) : undefined;
+          return rank !== undefined ? colorForRank(rank) : DEFAULT_SHAPE_COLOR;
+        }
+        case "subcaste": {
+          const rank = person.subcasteId ? subcasteRankById.get(person.subcasteId) : undefined;
+          return rank !== undefined ? colorForRank(rank) : DEFAULT_SHAPE_COLOR;
+        }
         default:
           return DEFAULT_SHAPE_COLOR;
       }
     };
-  }, [colorBy, villageById]);
+  }, [colorBy, villageById, casteRankById, subcasteRankById]);
 
   const { nodes, edges } = useMemo(() => {
     const layout = computeLayout(people, relationships);

@@ -223,6 +223,8 @@ function TreeApp({
             people={people}
             relationships={relationships}
             villages={villages}
+            castes={castes}
+            subcastes={subcastes}
             colorBy={colorBy}
             mode={mode}
             editableOwnerIds={editableOwnerIds}

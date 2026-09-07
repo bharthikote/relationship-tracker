@@ -11,7 +11,6 @@ import type {
   Village,
 } from "../types";
 import { AutosuggestInput } from "./AutosuggestInput";
-import { colorForId } from "../palette";
 
 const RELATION_LABELS: Record<AttachRelationType, string> = {
   spouse: "Spouse",
@@ -97,8 +96,7 @@ export function AddRelativeFlow({
     const trimmed = nameInput.trim();
     const existing = villages.find((v) => v.name.toLowerCase() === trimmed.toLowerCase());
     if (existing) return existing;
-    const color = colorForId(trimmed.toLowerCase());
-    return api.villages.create({ name: trimmed, color });
+    return api.villages.create({ name: trimmed });
   }
 
   async function resolveCaste(nameInput: string): Promise<Caste> {

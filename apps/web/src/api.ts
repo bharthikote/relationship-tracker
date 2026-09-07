@@ -62,7 +62,7 @@ export const api = {
   },
   villages: {
     list: () => req<Village[]>("/api/villages"),
-    create: (data: { name: string; type?: string; color: string; region?: string }) =>
+    create: (data: { name: string; type?: string; region?: string }) =>
       req<Village>("/api/villages", { method: "POST", body: JSON.stringify(data) }),
   },
   castes: {

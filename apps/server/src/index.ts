@@ -11,6 +11,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Spread village colors around the hue wheel using the golden angle (~137.508 degrees) so each
+// newly created village stays maximally separated from every village created before it, instead
+// of a hash-based color that can coincidentally put two different villages only a few degrees
+// apart. Mirrors apps/web/src/palette.ts's colorForRank -- keep both in sync if this changes.
+function colorForRank(rank: number): string {
+  const hue = (rank * 137.508) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+}
+
 // The DB enum can't contain a hyphen, so it stores "parent_child"; the wire format
 // (and the rest of this codebase) uses "parent-child" for consistency with spouse/sibling.
 function toApiRelationshipType(t: string): RelationshipType {
@@ -237,12 +246,13 @@ app.get("/api/villages", async (_req, res) => {
 });
 
 app.post("/api/villages", async (req, res) => {
-  const { name: rawName, type = "village", color, region } = req.body ?? {};
+  const { name: rawName, type = "village", region } = req.body ?? {};
   const name = String(rawName ?? "").trim();
-  if (!name || !color) return res.status(400).json({ error: "name and color are required" });
+  if (!name) return res.status(400).json({ error: "name is required" });
   const existing = await prisma.village.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
   if (existing) return res.json(existing);
-  const v = await prisma.village.create({ data: { name, type, color, region } });
+  const rank = await prisma.village.count();
+  const v = await prisma.village.create({ data: { name, type, color: colorForRank(rank), region } });
   res.status(201).json(v);
 });
 
