@@ -196,6 +196,8 @@ export function TreeCanvas({
               data: {},
               draggable: false,
               selectable: false,
+              width: 1,
+              height: 1,
             });
           }
         }
@@ -264,6 +266,12 @@ export function TreeCanvas({
       id: person.id,
       type: "person",
       position: { x, y },
+      // Declared explicitly (not left to React Flow's automatic DOM measurement) so the MiniMap
+      // and fitView have real dimensions to work with on the very first render -- React Flow
+      // skips drawing a MiniMap node entirely until it has *some* width/height for it, and
+      // relying solely on ResizeObserver-based measurement left the MiniMap permanently blank.
+      width: SHAPE_SIZE,
+      height: SHAPE_SIZE,
       data: {
         person,
         color: colorFor(person),
