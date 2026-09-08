@@ -583,9 +583,138 @@ select {
   line-height: 1.5;
 }
 
+/* ---- Share modal (Google Sheets-style share dialog) ---- */
+.share-modal {
+  max-width: 480px;
+  width: 100%;
+}
+.share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.share-header h3 {
+  margin: 0;
+}
+.share-header .close-btn {
+  float: none;
+}
+.share-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.share-add-row input {
+  flex: 1 1 80px;
+  min-width: 0;
+}
+.share-section-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 20px 0 8px;
+}
+.share-person-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.avatar-circle {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+.avatar-circle-pending {
+  background: var(--text-muted);
+}
+.share-person-name {
+  flex: 1;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.share-owner-tag {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.share-access-select {
+  font-size: 13px;
+  padding: 5px 8px;
+}
+.share-cancel-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+}
+.share-link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.share-link-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.share-link-text {
+  flex: 1 1 100px;
+  min-width: 0;
+  font-size: 14px;
+}
+.share-link-text > div:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .share-url-box {
   font-size: 12px;
   font-family: monospace;
+  margin-top: 8px;
+}
+.share-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.share-footer button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+}
+.share-done-btn {
+  border: none !important;
+  background: var(--accent) !important;
+  color: white !important;
 }
 
 /* ---- Account panel ---- */
@@ -670,20 +799,6 @@ select {
 .connection-row select {
   padding: 5px 8px;
   font-size: 12px;
-}
-.connection-row-accepted {
-  flex-wrap: wrap;
-}
-.permission-label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.permission-readonly {
-  font-size: 13px;
-  color: var(--text);
 }
 .admin-table-wrap {
   overflow-x: auto;

@@ -115,9 +115,6 @@ export function PermissionSelect({
 function ConnectionsTab() {
   const [discoverList, setDiscoverList] = useState<DiscoverProfile[]>([]);
   const [requests, setRequests] = useState<ConnectionRequestSummary[]>([]);
-  const [email, setEmail] = useState("");
-  const [newRequestPermission, setNewRequestPermission] = useState<ConnectionPermission>("view");
-  const [message, setMessage] = useState<string | null>(null);
   const [acceptPermissions, setAcceptPermissions] = useState<Record<string, ConnectionPermission>>({});
 
   async function refresh() {
@@ -130,21 +127,9 @@ function ConnectionsTab() {
     refresh();
   }, []);
 
-  async function requestByEmail() {
-    setMessage(null);
-    const matches = await api.users.searchByEmail(email);
-    if (matches.length === 0) return setMessage("No user found with that email.");
-    await sendRequest(matches[0].id);
-  }
-
   async function sendRequest(toUserId: string) {
-    try {
-      await api.connections.create(toUserId, undefined, newRequestPermission);
-      setEmail("");
-      await refresh();
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Could not send request");
-    }
+    await api.connections.create(toUserId, undefined, "view");
+    await refresh();
   }
 
   async function acceptRequest(id: string) {
@@ -153,27 +138,13 @@ function ConnectionsTab() {
   }
 
   const incoming = requests.filter((r) => r.direction === "incoming" && r.status === "pending");
-  const outgoing = requests.filter((r) => r.direction === "outgoing" && r.status === "pending");
 
   return (
     <div>
       <p className="muted-text">
-        Connecting lets someone else see and, if you allow it, edit your tree — and you theirs. Each of you
-        controls edit access to your own tree independently, and can change it any time.
+        To add people or manage their access to your tree, use the Share button on the main
+        screen. This tab covers requests you've received and open trees you can browse.
       </p>
-
-      <div className="connections-section">
-        <div className="relation-list-title">Connect by email</div>
-        <div className="inline-form">
-          <input placeholder="someone@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <PermissionSelect value={newRequestPermission} onChange={setNewRequestPermission} />
-          <button onClick={requestByEmail} disabled={!email.trim()}>
-            Send request
-          </button>
-        </div>
-        <div className="hint-text">Access you're offering them on your tree if they accept.</div>
-        {message && <div className="error-text">{message}</div>}
-      </div>
 
       {discoverList.length > 0 && (
         <div className="connections-section">
@@ -219,29 +190,6 @@ function ConnectionsTab() {
         </div>
       )}
 
-      {outgoing.length > 0 && (
-        <div className="connections-section">
-          <div className="relation-list-title">Pending requests you sent</div>
-          {outgoing.map((r) => (
-            <div key={r.id} className="connection-row">
-              <span>{r.toUser.displayName}</span>
-              <button
-                onClick={async () => {
-                  await api.connections.remove(r.id);
-                  refresh();
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <p className="hint-text">
-        Once someone accepts, manage their access (or disconnect them) from the Share button on
-        the main screen.
-      </p>
     </div>
   );
 }

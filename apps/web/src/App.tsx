@@ -424,6 +424,7 @@ function TreeApp({
 
       {shareOpen && (
         <ShareModal
+          profile={profile}
           onClose={() => {
             setShareOpen(false);
             refreshConnections();
