@@ -97,7 +97,7 @@ function ProfileTab({
   );
 }
 
-function PermissionSelect({
+export function PermissionSelect({
   value,
   onChange,
 }: {

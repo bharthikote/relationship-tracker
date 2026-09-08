@@ -104,6 +104,22 @@ async function relationsFor(personId: string) {
   return { spouses, parents, children, siblings };
 }
 
+// PUBLIC: the invite landing page needs to show who invited you and what they're offering
+// before you've signed in, so this one route is registered ahead of the auth gate below.
+// Namespaced under /preview/ (rather than /api/invites/:id) so it can never collide with the
+// authenticated /api/invites/mine route registered further down.
+app.get("/api/invites/preview/:id", async (req, res) => {
+  const invite = await prisma.inviteLink.findUnique({
+    where: { id: req.params.id },
+    include: { fromUser: { select: { displayName: true, email: true } } },
+  });
+  if (!invite) return res.status(404).json({ error: "invite not found" });
+  res.json({
+    fromDisplayName: invite.fromUser.displayName || invite.fromUser.email,
+    permission: invite.permission,
+  });
+});
+
 // Every route below requires a signed-in Supabase user.
 app.use("/api", requireAuth);
 
@@ -290,6 +306,77 @@ app.delete("/api/connections/:id", async (req, res) => {
   }
   await prisma.connectionRequest.delete({ where: { id: reqRow.id } });
   res.status(204).end();
+});
+
+// ---- Invite links (share-anywhere alternative to the by-email connect flow above) ----
+app.get("/api/invites/mine", async (req, res) => {
+  const me = req.profile!.id;
+  const invite = await prisma.inviteLink.upsert({
+    where: { fromUserId: me },
+    update: {},
+    create: { fromUserId: me },
+  });
+  res.json({ id: invite.id, permission: invite.permission });
+});
+
+app.patch("/api/invites/mine", async (req, res) => {
+  const { permission } = req.body ?? {};
+  if (!isValidPermission(permission)) {
+    return res.status(400).json({ error: "permission must be 'view' or 'edit'" });
+  }
+  const me = req.profile!.id;
+  const invite = await prisma.inviteLink.upsert({
+    where: { fromUserId: me },
+    update: { permission },
+    create: { fromUserId: me, permission },
+  });
+  res.json({ id: invite.id, permission: invite.permission });
+});
+
+app.post("/api/invites/:id/accept", async (req, res) => {
+  const me = req.profile!.id;
+  const invite = await prisma.inviteLink.findUnique({ where: { id: req.params.id } });
+  if (!invite) return res.status(404).json({ error: "invite not found" });
+  if (invite.fromUserId === me) return res.status(400).json({ error: "this is your own invite link" });
+
+  const existing = await prisma.connectionRequest.findFirst({
+    where: {
+      OR: [
+        { fromUserId: invite.fromUserId, toUserId: me },
+        { fromUserId: me, toUserId: invite.fromUserId },
+      ],
+    },
+  });
+
+  const include = {
+    fromUser: { select: { id: true, displayName: true, email: true } },
+    toUser: { select: { id: true, displayName: true, email: true } },
+  };
+
+  const updated = existing
+    ? await prisma.connectionRequest.update({
+        where: { id: existing.id },
+        data: {
+          status: "accepted",
+          respondedAt: new Date(),
+          ...(existing.fromUserId === invite.fromUserId
+            ? { fromPermission: invite.permission }
+            : { toPermission: invite.permission }),
+        },
+        include,
+      })
+    : await prisma.connectionRequest.create({
+        data: {
+          fromUserId: invite.fromUserId,
+          toUserId: me,
+          status: "accepted",
+          respondedAt: new Date(),
+          fromPermission: invite.permission,
+        },
+        include,
+      });
+
+  res.json(toApiConnection(updated, me));
 });
 
 // ---- Admin ----

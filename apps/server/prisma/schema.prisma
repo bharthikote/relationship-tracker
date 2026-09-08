@@ -58,6 +58,7 @@ model Profile {
 
   sentRequests     ConnectionRequest[] @relation("RequestFrom")
   receivedRequests ConnectionRequest[] @relation("RequestTo")
+  inviteLink       InviteLink?
 
   @@index([email])
 }
@@ -84,6 +85,19 @@ model ConnectionRequest {
 
   @@unique([fromUserId, toUserId])
   @@index([toUserId])
+}
+
+// A stable, shareable "anyone with this link" URL -- one per user, id doubles as the URL token
+// (a v4 UUID is unguessable enough on its own, no separate token column needed). Redeeming it
+// (see POST /api/invites/:id/accept) creates or updates an accepted ConnectionRequest between the
+// owner and whoever redeems it, granting `permission` -- distinct from the by-email connection
+// flow, which requires already knowing the other person's account.
+model InviteLink {
+  id         String               @id @default(uuid())
+  fromUserId String               @unique
+  fromUser   Profile              @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+  permission ConnectionPermission @default(view)
+  createdAt  DateTime             @default(now())
 }
 
 model Village {

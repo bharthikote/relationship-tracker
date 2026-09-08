@@ -22,16 +22,30 @@ import { PersonPickerModal } from "./components/PersonPickerModal";
 import { NewBranchModal } from "./components/NewBranchModal";
 import { AccountPanel } from "./components/AccountPanel";
 import { EditPersonModal } from "./components/EditPersonModal";
+import { ShareModal } from "./components/ShareModal";
+import { InvitePage } from "./components/InvitePage";
 import { UserMenu } from "./components/UserMenu";
 import { useAuth } from "./auth/AuthContext";
 import { AuthPage } from "./auth/AuthPage";
 import { quickRelationToPreset, type QuickRelation } from "./quickRelations";
-import { EyeIcon, PencilIcon, GearIcon, AnalyticsIcon } from "./icons";
+import { EyeIcon, PencilIcon, GearIcon, AnalyticsIcon, ShareIcon } from "./icons";
 
 function App() {
   const { session, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileError, setProfileError] = useState(false);
+  const [path, setPath] = useState(() => window.location.pathname);
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function navigate(to: string) {
+    window.history.pushState({}, "", to);
+    setPath(to);
+  }
 
   useEffect(() => {
     if (!session) {
@@ -45,6 +59,20 @@ function App() {
   useEffect(() => {
     if (profileError) signOut();
   }, [profileError, signOut]);
+
+  // A brand-new sign-up needs to confirm their email before they're actually signed in, so the
+  // invite id has to survive that round trip (it's stashed in localStorage by InvitePage) -- once
+  // they do land back here signed in, send them back to the invite page to finish accepting it.
+  useEffect(() => {
+    if (!session) return;
+    const pending = localStorage.getItem("pendingInviteId");
+    if (pending && !path.startsWith("/invite/")) navigate(`/invite/${pending}`);
+  }, [session, path]);
+
+  const inviteMatch = path.match(/^\/invite\/([^/]+)$/);
+  if (inviteMatch) {
+    return <InvitePage inviteId={inviteMatch[1]} onDone={() => navigate("/")} />;
+  }
 
   if (authLoading) return null;
   if (!session) return <AuthPage />;
@@ -84,6 +112,7 @@ function TreeApp({
     return new Set((saved ? saved.split(",") : []).filter(Boolean) as InfoField[]);
   });
   const [accountOpen, setAccountOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit">("edit");
   const [connectedOwnerIds, setConnectedOwnerIds] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -220,6 +249,14 @@ function TreeApp({
           </button>
           <button className="icon-toggle" aria-label="Analytics" title="Analytics (coming soon)">
             <AnalyticsIcon />
+          </button>
+          <button
+            className="icon-toggle"
+            onClick={() => setShareOpen(true)}
+            aria-label="Share"
+            title="Share"
+          >
+            <ShareIcon />
           </button>
           <div className="mode-toggle">
             <button
@@ -379,6 +416,16 @@ function TreeApp({
           onProfileUpdated={onProfileUpdated}
           onClose={() => {
             setAccountOpen(false);
+            refreshConnections();
+            refresh();
+          }}
+        />
+      )}
+
+      {shareOpen && (
+        <ShareModal
+          onClose={() => {
+            setShareOpen(false);
             refreshConnections();
             refresh();
           }}

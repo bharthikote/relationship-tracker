@@ -121,3 +121,13 @@ export interface ConnectionRequestSummary {
   toUser: { id: string; displayName: string };
   createdAt: string;
 }
+
+export interface MyInviteLink {
+  id: string;
+  permission: ConnectionPermission;
+}
+
+export interface InvitePreview {
+  fromDisplayName: string;
+  permission: ConnectionPermission;
+}

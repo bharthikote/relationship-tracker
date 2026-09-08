@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "./AuthContext";
 
-export function AuthPage() {
+export function AuthPage({ embedded }: { embedded?: boolean } = {}) {
   const { signInWithPassword, signUpWithPassword } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -27,51 +27,57 @@ export function AuthPage() {
     }
   }
 
+  const content = (
+    <>
+      {!embedded && <h1>Family Tree</h1>}
+      <p className="auth-sub">
+        {mode === "signin" ? "Sign in to your tree." : "Create an account to start your tree."}
+      </p>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Email
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoFocus
+          />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+        {error && <div className="error-text">{error}</div>}
+        {info && <div className="info-text">{info}</div>}
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Please wait..." : mode === "signin" ? "Sign in" : "Sign up"}
+        </button>
+      </form>
+      <button
+        className="auth-switch"
+        onClick={() => {
+          setMode(mode === "signin" ? "signup" : "signin");
+          setError(null);
+          setInfo(null);
+        }}
+      >
+        {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+      </button>
+    </>
+  );
+
+  if (embedded) return content;
+
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <h1>Family Tree</h1>
-        <p className="auth-sub">
-          {mode === "signin" ? "Sign in to your tree." : "Create an account to start your tree."}
-        </p>
-        <form onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoFocus
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          {error && <div className="error-text">{error}</div>}
-          {info && <div className="info-text">{info}</div>}
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Please wait..." : mode === "signin" ? "Sign in" : "Sign up"}
-          </button>
-        </form>
-        <button
-          className="auth-switch"
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setError(null);
-            setInfo(null);
-          }}
-        >
-          {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-        </button>
-      </div>
+      <div className="auth-card">{content}</div>
     </div>
   );
 }

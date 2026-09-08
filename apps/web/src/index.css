@@ -577,6 +577,16 @@ select {
   color: #2a8f4e;
   font-size: 13px;
 }
+.invite-banner {
+  font-size: 14px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.share-url-box {
+  font-size: 12px;
+  font-family: monospace;
+}
 
 /* ---- Account panel ---- */
 .account-modal {

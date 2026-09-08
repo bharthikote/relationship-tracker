@@ -5,7 +5,9 @@ import type {
   ConnectionPermission,
   ConnectionRequestSummary,
   DiscoverProfile,
+  InvitePreview,
   LocationEvent,
+  MyInviteLink,
   PathResult,
   Person,
   PersonDetail,
@@ -69,6 +71,13 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ permission }),
       }),
+  },
+  invites: {
+    mine: () => req<MyInviteLink>("/api/invites/mine"),
+    updateMine: (permission: ConnectionPermission) =>
+      req<MyInviteLink>("/api/invites/mine", { method: "PATCH", body: JSON.stringify({ permission }) }),
+    get: (id: string) => req<InvitePreview>(`/api/invites/preview/${id}`),
+    accept: (id: string) => req<ConnectionRequestSummary>(`/api/invites/${id}/accept`, { method: "POST" }),
   },
   admin: {
     users: () => req<AdminProfile[]>("/api/admin/users"),
