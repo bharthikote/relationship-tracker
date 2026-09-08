@@ -8,8 +8,8 @@ interface Props {
 }
 
 const COLOR_OPTIONS: { mode: ColorByMode; label: string }[] = [
-  { mode: "village", label: "Village" },
-  { mode: "location", label: "Location" },
+  { mode: "village", label: "Native Location" },
+  { mode: "location", label: "Current Location" },
   { mode: "caste", label: "Caste" },
   { mode: "subcaste", label: "Subcaste" },
 ];
@@ -33,7 +33,7 @@ export function SettingsPanel({ colorBy, onColorByChange, infoFields, onInfoFiel
   return (
     <div className="settings-panel">
       <div className="settings-panel-title">Settings</div>
-      <div className="settings-section-title">Shape color</div>
+      <div className="settings-section-title">Show Same Shape Color</div>
       {COLOR_OPTIONS.map((opt) => (
         <label key={opt.mode} className="settings-row">
           <input
@@ -45,7 +45,7 @@ export function SettingsPanel({ colorBy, onColorByChange, infoFields, onInfoFiel
         </label>
       ))}
 
-      <div className="settings-section-title settings-section-title-spaced">Show below name</div>
+      <div className="settings-section-title settings-section-title-spaced">Show Additional Info</div>
       {INFO_FIELD_OPTIONS.map((opt) => (
         <label key={opt.field} className="settings-row">
           <input
