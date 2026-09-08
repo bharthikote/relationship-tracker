@@ -477,6 +477,16 @@ select {
   font-weight: normal;
 }
 
+.picker-search {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+}
+.picker-list {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
 .error-text {
   color: #d1242f;
   margin-top: 10px;

@@ -18,6 +18,8 @@ import { SearchBar } from "./components/SearchBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { PersonDetailPanel } from "./components/PersonDetailPanel";
 import { AddRelativeFlow } from "./components/AddRelativeFlow";
+import { PersonPickerModal } from "./components/PersonPickerModal";
+import { NewBranchModal } from "./components/NewBranchModal";
 import { AccountPanel } from "./components/AccountPanel";
 import { EditPersonModal } from "./components/EditPersonModal";
 import { UserMenu } from "./components/UserMenu";
@@ -84,6 +86,8 @@ function TreeApp({
   const [accountOpen, setAccountOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit">("edit");
   const [connectedOwnerIds, setConnectedOwnerIds] = useState<Set<string>>(new Set());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [newBranchOpen, setNewBranchOpen] = useState(false);
 
   const [refreshToken, setRefreshToken] = useState(0);
 
@@ -164,6 +168,9 @@ function TreeApp({
   const myPeople = people.filter((p) => p.ownerId === profile.id);
   const editableOwnerIds: Set<string> | "all" =
     profile.role === "super_admin" ? "all" : new Set([profile.id, ...connectedOwnerIds]);
+  const editablePeople = people.filter(
+    (p) => editableOwnerIds === "all" || editableOwnerIds.has(p.ownerId)
+  );
 
   const highlightedPersonIds = pathResult
     ? new Set([selfId, ...pathResult.steps.map((s) => s.personId)].filter(Boolean) as string[])
@@ -196,11 +203,7 @@ function TreeApp({
           {mode === "edit" && people.length > 0 && (
             <button
               className="icon-toggle icon-toggle-accent"
-              onClick={() =>
-                myPeople.length === 0
-                  ? addSelf()
-                  : setAddFlowAnchorId(selectedPersonId ?? myPeople[0].id)
-              }
+              onClick={() => (myPeople.length === 0 ? addSelf() : setPickerOpen(true))}
               aria-label={myPeople.length === 0 ? "Add yourself" : "Add relative"}
               title={myPeople.length === 0 ? "Add yourself" : "Add relative"}
             >
@@ -306,6 +309,32 @@ function TreeApp({
             setPathResult(null);
             if (selfId === id) clearSelf();
             await refresh();
+          }}
+        />
+      )}
+
+      {pickerOpen && (
+        <PersonPickerModal
+          people={editablePeople}
+          onClose={() => setPickerOpen(false)}
+          onPickPerson={(id) => {
+            setPickerOpen(false);
+            setAddFlowAnchorId(id);
+          }}
+          onStartNewBranch={() => {
+            setPickerOpen(false);
+            setNewBranchOpen(true);
+          }}
+        />
+      )}
+
+      {newBranchOpen && (
+        <NewBranchModal
+          onClose={() => setNewBranchOpen(false)}
+          onCreated={async (person) => {
+            setNewBranchOpen(false);
+            await refresh();
+            setSelectedPersonId(person.id);
           }}
         />
       )}

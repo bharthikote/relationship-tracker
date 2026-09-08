@@ -381,13 +381,9 @@ app.post("/api/people", async (req, res) => {
   if (!name || !gender) return res.status(400).json({ error: "name and gender are required" });
   const me = req.profile!.id;
 
-  const isFirstOfMine = (await prisma.person.count({ where: { ownerId: me } })) === 0;
-  if (!isFirstOfMine && !attachTo?.personId) {
-    return res
-      .status(400)
-      .json({ error: "New people must be attached to an existing person (attachTo.personId)" });
-  }
-
+  // attachTo is optional -- omitting it deliberately starts a new, unattached family branch
+  // (the very first person a user ever adds always works this way; the same path also powers
+  // "start a new family branch" for anyone who already has people).
   let anchor: DbPerson | null = null;
   if (attachTo?.personId) {
     anchor = await prisma.person.findUnique({ where: { id: attachTo.personId } });
