@@ -253,13 +253,15 @@ function ConnectionsTab() {
               <div key={r.id} className="connection-row connection-row-accepted">
                 <span>{other.displayName}</span>
                 <div className="connection-row-actions">
+                  {/* myPermission is the grant I control (what I give THEM on MY tree) -- editable.
+                      theirPermission is their grant to me on THEIRS -- read-only here, they control it. */}
                   <label className="permission-label">
                     Their access to you
-                    <span className="permission-readonly">{r.theirPermission === "edit" ? "Can edit" : "View only"}</span>
+                    <PermissionSelect value={r.myPermission} onChange={(p) => changeMyPermission(r.id, p)} />
                   </label>
                   <label className="permission-label">
                     Your access to them
-                    <PermissionSelect value={r.myPermission} onChange={(p) => changeMyPermission(r.id, p)} />
+                    <span className="permission-readonly">{r.theirPermission === "edit" ? "Can edit" : "View only"}</span>
                   </label>
                   <button
                     onClick={async () => {
