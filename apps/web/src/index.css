@@ -93,6 +93,17 @@ select {
 .icon-toggle:hover {
   color: var(--text);
 }
+.icon-toggle-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-size: 20px;
+  line-height: 1;
+}
+.icon-toggle-accent:hover {
+  color: white;
+  opacity: 0.9;
+}
 
 .legend-drawer {
   position: absolute;
@@ -186,22 +197,6 @@ select {
   justify-content: center;
   gap: 12px;
   color: var(--text-muted);
-}
-
-.fab-add {
-  position: absolute;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: var(--accent);
-  color: white;
-  font-size: 28px;
-  line-height: 1;
-  box-shadow: var(--shadow);
-  z-index: 15;
 }
 
 .search-bar {

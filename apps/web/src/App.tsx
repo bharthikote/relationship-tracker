@@ -193,6 +193,20 @@ function TreeApp({
           <SearchBar people={people} onSelect={setSelectedPersonId} />
         </div>
         <div className="floating-controls-right">
+          {mode === "edit" && people.length > 0 && (
+            <button
+              className="icon-toggle icon-toggle-accent"
+              onClick={() =>
+                myPeople.length === 0
+                  ? addSelf()
+                  : setAddFlowAnchorId(selectedPersonId ?? myPeople[0].id)
+              }
+              aria-label={myPeople.length === 0 ? "Add yourself" : "Add relative"}
+              title={myPeople.length === 0 ? "Add yourself" : "Add relative"}
+            >
+              +
+            </button>
+          )}
           <button
             className="icon-toggle"
             onClick={() => setSettingsOpen((o) => !o)}
@@ -262,20 +276,6 @@ function TreeApp({
             highlightedPersonIds={highlightedPersonIds}
             highlightedEdgeKeys={highlightedEdgeKeys}
           />
-        )}
-
-        {mode === "edit" && people.length > 0 && (
-          <button
-            className="fab-add"
-            onClick={() =>
-              myPeople.length === 0
-                ? addSelf()
-                : setAddFlowAnchorId(selectedPersonId ?? myPeople[0].id)
-            }
-            aria-label={myPeople.length === 0 ? "Add yourself" : "Add relative"}
-          >
-            +
-          </button>
         )}
       </main>
 
