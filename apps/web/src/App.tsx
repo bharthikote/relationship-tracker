@@ -196,8 +196,8 @@ function TreeApp({
           <button
             className="icon-toggle"
             onClick={() => setSettingsOpen((o) => !o)}
-            aria-label="Settings"
-            title="Settings"
+            aria-label="View Settings"
+            title="View Settings"
           >
             <GearIcon />
           </button>

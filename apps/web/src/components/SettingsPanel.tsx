@@ -32,7 +32,7 @@ export function SettingsPanel({ colorBy, onColorByChange, infoFields, onInfoFiel
 
   return (
     <div className="settings-panel">
-      <div className="settings-panel-title">Settings</div>
+      <div className="settings-panel-title">View Settings</div>
       <div className="settings-section-title">Show Same Shape Color</div>
       {COLOR_OPTIONS.map((opt) => (
         <label key={opt.mode} className="settings-row">
