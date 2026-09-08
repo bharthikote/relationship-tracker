@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { ConnectionPermission, MyInviteLink } from "../types";
+import type { ConnectionPermission, ConnectionRequestSummary, MyInviteLink } from "../types";
 import { PermissionSelect } from "./AccountPanel";
 
 interface Props {
@@ -10,13 +10,29 @@ interface Props {
 export function ShareModal({ onClose }: Props) {
   const [invite, setInvite] = useState<MyInviteLink | null>(null);
   const [copied, setCopied] = useState(false);
+  const [connections, setConnections] = useState<ConnectionRequestSummary[]>([]);
 
   useEffect(() => {
     api.invites.mine().then(setInvite);
+    refreshConnections();
   }, []);
+
+  async function refreshConnections() {
+    setConnections(await api.connections.list());
+  }
 
   async function changePermission(permission: ConnectionPermission) {
     setInvite(await api.invites.updateMine(permission));
+  }
+
+  async function changeMyPermission(id: string, permission: ConnectionPermission) {
+    await api.connections.updatePermission(id, permission);
+    await refreshConnections();
+  }
+
+  async function disconnect(id: string) {
+    await api.connections.remove(id);
+    await refreshConnections();
   }
 
   const url = invite ? `${window.location.origin}/invite/${invite.id}` : "";
@@ -30,6 +46,8 @@ export function ShareModal({ onClose }: Props) {
   async function nativeShare() {
     await navigator.share({ title: "Family Tree", text: "Join my family tree", url });
   }
+
+  const accepted = connections.filter((r) => r.status === "accepted");
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -62,6 +80,36 @@ export function ShareModal({ onClose }: Props) {
               )}
             </div>
           </>
+        )}
+
+        {accepted.length > 0 && (
+          <div className="connections-section">
+            <div className="relation-list-title">People with access</div>
+            {accepted.map((r) => {
+              const other = r.direction === "outgoing" ? r.toUser : r.fromUser;
+              return (
+                <div key={r.id} className="connection-row connection-row-accepted">
+                  <span>{other.displayName}</span>
+                  <div className="connection-row-actions">
+                    {/* myPermission is the grant I control (what I give THEM on MY tree) --
+                        editable. theirPermission is their grant to me on THEIRS -- read-only
+                        here, they control it. */}
+                    <label className="permission-label">
+                      Their access to you
+                      <PermissionSelect value={r.myPermission} onChange={(p) => changeMyPermission(r.id, p)} />
+                    </label>
+                    <label className="permission-label">
+                      Your access to them
+                      <span className="permission-readonly">
+                        {r.theirPermission === "edit" ? "Can edit" : "View only"}
+                      </span>
+                    </label>
+                    <button onClick={() => disconnect(r.id)}>Disconnect</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

@@ -152,14 +152,8 @@ function ConnectionsTab() {
     await refresh();
   }
 
-  async function changeMyPermission(id: string, permission: ConnectionPermission) {
-    await api.connections.updatePermission(id, permission);
-    await refresh();
-  }
-
   const incoming = requests.filter((r) => r.direction === "incoming" && r.status === "pending");
   const outgoing = requests.filter((r) => r.direction === "outgoing" && r.status === "pending");
-  const accepted = requests.filter((r) => r.status === "accepted");
 
   return (
     <div>
@@ -244,39 +238,10 @@ function ConnectionsTab() {
         </div>
       )}
 
-      {accepted.length > 0 && (
-        <div className="connections-section">
-          <div className="relation-list-title">Connected</div>
-          {accepted.map((r) => {
-            const other = r.direction === "outgoing" ? r.toUser : r.fromUser;
-            return (
-              <div key={r.id} className="connection-row connection-row-accepted">
-                <span>{other.displayName}</span>
-                <div className="connection-row-actions">
-                  {/* myPermission is the grant I control (what I give THEM on MY tree) -- editable.
-                      theirPermission is their grant to me on THEIRS -- read-only here, they control it. */}
-                  <label className="permission-label">
-                    Their access to you
-                    <PermissionSelect value={r.myPermission} onChange={(p) => changeMyPermission(r.id, p)} />
-                  </label>
-                  <label className="permission-label">
-                    Your access to them
-                    <span className="permission-readonly">{r.theirPermission === "edit" ? "Can edit" : "View only"}</span>
-                  </label>
-                  <button
-                    onClick={async () => {
-                      await api.connections.remove(r.id);
-                      refresh();
-                    }}
-                  >
-                    Disconnect
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <p className="hint-text">
+        Once someone accepts, manage their access (or disconnect them) from the Share button on
+        the main screen.
+      </p>
     </div>
   );
 }
