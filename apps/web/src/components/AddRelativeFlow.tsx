@@ -42,21 +42,34 @@ export function AddRelativeFlow({
   onClose,
   onCreated,
 }: Props) {
+  // Most relatives (child/parent/sibling) plausibly share the anchor's caste, subcaste, and
+  // village, so prefill those to save typing -- still fully editable if wrong. A spouse is
+  // different: caste is usually shared but subcaste and native village typically aren't (the
+  // classic pattern of a bride coming from a different village/sub-caste), so only caste is
+  // prefilled there -- the field is left blank (the anchor's village still shows as a
+  // placeholder hint, since it's occasionally the same) rather than guessing and being wrong.
+  function autofillFor(relationType: AttachRelationType | undefined) {
+    const casteName = castes.find((c) => c.id === anchorPerson.casteId)?.name ?? "";
+    if (relationType === "spouse") return { caste: casteName, subcaste: "", villageName: "" };
+    if (relationType === "child" || relationType === "parent" || relationType === "sibling") {
+      const subcasteName = subcastes.find((s) => s.id === anchorPerson.subcasteId)?.name ?? "";
+      const currentVillageName = villages.find((v) => v.id === anchorPerson.currentVillageId)?.name ?? "";
+      return { caste: casteName, subcaste: subcasteName, villageName: currentVillageName };
+    }
+    return { caste: "", subcaste: "", villageName: "" };
+  }
+
   const [step, setStep] = useState<Step>(preset ? "details" : "relation");
   const [relationType, setRelationType] = useState<AttachRelationType | null>(preset?.relationType ?? null);
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender>(preset?.gender ?? "female");
   const [isDeceased, setIsDeceased] = useState(false);
   const [deathYear, setDeathYear] = useState("");
-  const [caste, setCaste] = useState(
-    preset?.relationType === "sibling" ? castes.find((c) => c.id === anchorPerson.casteId)?.name ?? "" : ""
-  );
-  const [subcaste, setSubcaste] = useState(
-    preset?.relationType === "sibling" ? subcastes.find((s) => s.id === anchorPerson.subcasteId)?.name ?? "" : ""
-  );
+  const [caste, setCaste] = useState(() => autofillFor(preset?.relationType).caste);
+  const [subcaste, setSubcaste] = useState(() => autofillFor(preset?.relationType).subcaste);
   const [birthYear, setBirthYear] = useState("");
   const [isConsanguineous, setIsConsanguineous] = useState(false);
-  const [villageName, setVillageName] = useState("");
+  const [villageName, setVillageName] = useState(() => autofillFor(preset?.relationType).villageName);
   const [migrated, setMigrated] = useState(false);
   const [currentPlaceName, setCurrentPlaceName] = useState("");
   const [sameAsVillage, setSameAsVillage] = useState(true);
@@ -183,7 +196,10 @@ export function AddRelativeFlow({
         return;
       }
 
-      const nativeVillageNameToUse = villageName.trim() || anchorVillageName;
+      // A spouse's native village isn't assumed to match the anchor's -- leave it unset if the
+      // user didn't type one, rather than silently defaulting like the other relation types do.
+      const nativeVillageNameToUse =
+        villageName.trim() || (relationType === "spouse" ? "" : anchorVillageName);
       const nativeVillage = nativeVillageNameToUse ? await resolveVillage(nativeVillageNameToUse) : undefined;
 
       let currentVillage: Village | undefined = nativeVillage;
@@ -267,10 +283,10 @@ export function AddRelativeFlow({
                   className="big-choice"
                   onClick={() => {
                     setRelationType(rt);
-                    if (rt === "sibling") {
-                      setCaste(castes.find((c) => c.id === anchorPerson.casteId)?.name ?? "");
-                      setSubcaste(subcastes.find((s) => s.id === anchorPerson.subcasteId)?.name ?? "");
-                    }
+                    const auto = autofillFor(rt);
+                    setCaste(auto.caste);
+                    setSubcaste(auto.subcaste);
+                    setVillageName(auto.villageName);
                     setStep("details");
                   }}
                 >
