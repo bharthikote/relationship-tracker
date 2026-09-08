@@ -17,6 +17,7 @@ interface Props {
   onClose: () => void;
   onPathResult: (result: PathResult | null) => void;
   onPersonUpdated: () => void;
+  onDeleted: (id: string) => void;
 }
 
 function nameOf(list: { id: string; name: string }[], id?: string) {
@@ -60,6 +61,7 @@ export function PersonDetailPanel({
   onClose,
   onPathResult,
   onPersonUpdated,
+  onDeleted,
 }: Props) {
   const [detail, setDetail] = useState<PersonDetail | null>(null);
   const [pathCaption, setPathCaption] = useState<string | null>(null);
@@ -101,6 +103,21 @@ export function PersonDetailPanel({
     const updated = await api.people.update(detail.id, { gender });
     setDetail({ ...detail, gender: updated.gender });
     onPersonUpdated();
+  };
+
+  const deletePerson = async () => {
+    const relatedCount =
+      detail.relations.spouses.length +
+      detail.relations.parents.length +
+      detail.relations.children.length +
+      detail.relations.siblings.length;
+    const warning =
+      relatedCount > 0
+        ? `Delete ${detail.name}? This also removes their ${relatedCount} recorded relationship(s) to other people. This cannot be undone.`
+        : `Delete ${detail.name}? This cannot be undone.`;
+    if (!window.confirm(warning)) return;
+    await api.people.delete(detail.id);
+    onDeleted(detail.id);
   };
 
   return (
@@ -167,6 +184,11 @@ export function PersonDetailPanel({
           <button onClick={findRelationship}>Find my relationship to this person</button>
         )}
         {!selfId && <button onClick={() => onSetSelf(detail.id)}>This is me</button>}
+        {canEdit && (
+          <button className="btn-danger" onClick={deletePerson}>
+            Delete person
+          </button>
+        )}
       </div>
 
       {pathCaption && <div className="path-caption">{pathCaption}</div>}

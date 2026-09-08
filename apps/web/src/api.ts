@@ -129,6 +129,7 @@ export const api = {
         currentVillageId: string;
       }>
     ) => req<Person>(`/api/people/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    delete: (id: string) => req<void>(`/api/people/${id}`, { method: "DELETE" }),
     duplicates: (name: string) => req<PersonSummary[]>(`/api/duplicates?name=${encodeURIComponent(name)}`),
   },
   relationships: {

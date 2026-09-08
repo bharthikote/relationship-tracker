@@ -470,6 +470,18 @@ app.patch("/api/people/:id", async (req, res) => {
   res.json(toApiPerson(updated));
 });
 
+// Relationship rows reference personA/personB with onDelete: Cascade, so deleting a Person also
+// removes every relationship touching them -- no manual cleanup needed here.
+app.delete("/api/people/:id", async (req, res) => {
+  const person = await prisma.person.findUnique({ where: { id: req.params.id } });
+  if (!person) return res.status(404).json({ error: "not found" });
+  if (!(await canEditOwner(req.profile!, person.ownerId))) {
+    return res.status(403).json({ error: "you don't have permission to delete this person" });
+  }
+  await prisma.person.delete({ where: { id: person.id } });
+  res.status(204).end();
+});
+
 function relationDirection(
   relationType: "spouse" | "child" | "parent" | "sibling",
   anchorId: string,

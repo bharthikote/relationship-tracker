@@ -331,6 +331,11 @@ select {
   background: var(--panel-bg);
   color: var(--text);
 }
+.detail-actions button.btn-danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: white;
+}
 
 .path-caption {
   margin-top: 12px;

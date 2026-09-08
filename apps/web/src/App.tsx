@@ -131,6 +131,11 @@ function TreeApp({
     localStorage.setItem(`selfId:${profile.id}`, id);
   }
 
+  function clearSelf() {
+    setSelfId(null);
+    localStorage.removeItem(`selfId:${profile.id}`);
+  }
+
   function setColorBy(mode: ColorByMode) {
     setColorByState(mode);
     localStorage.setItem(`colorBy:${profile.id}`, mode);
@@ -296,6 +301,12 @@ function TreeApp({
           }}
           onPathResult={setPathResult}
           onPersonUpdated={refresh}
+          onDeleted={async (id) => {
+            setSelectedPersonId(null);
+            setPathResult(null);
+            if (selfId === id) clearSelf();
+            await refresh();
+          }}
         />
       )}
 
