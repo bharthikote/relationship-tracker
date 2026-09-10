@@ -2,7 +2,7 @@
 ## Village Family Tree & Relationship Tracker
 
 **Version:** 1.0 (Draft)
-**Owner:** [Your name]
+**Owner:** Bharath Kumar H E
 **Status:** For review
 **Last updated:** September 2026
 
